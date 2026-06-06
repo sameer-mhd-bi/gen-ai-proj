@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+/backend/.venv
+/backend/src_doc_files
+/backend/knowledge_db

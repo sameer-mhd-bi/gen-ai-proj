@@ -1,10 +1,11 @@
 .app-layout {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   min-height: 100vh;
   width: 100%;
   overflow-x: hidden;
 }
+
 
 /* ── Topbar ────────────────────────────────────────────────────── */
 .topbar {
@@ -19,7 +20,6 @@
   padding: 10px 20px;
   padding-left: 240px;
   background: var(--bg);
-  border-bottom: 1px solid var(--border);
   transition: padding-left 0.25s ease;
 }
 
@@ -27,7 +27,7 @@
   padding-left: 76px;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1000px) {
   .topbar,
   .topbar.collapsed {
     padding: 10px 12px;
@@ -41,7 +41,7 @@
   flex: 1;
   display: flex;
   align-items: center;
-  max-width: 1200px;
+  max-width: 1000px;
 }
 
 /* Search icon positioned inside the input on the left */
@@ -119,58 +119,186 @@
 /* ── Main content area ─────────────────────────────────────────── */
 .main-content {
   margin-left: 220px;
-  flex: 1;
+  flex: 0 0 70%;
   display: flex;
   flex-direction: column;
+  align-items: center;
   overflow: auto;
-  padding-top: 66px; /* Increased to account for topbar height */
   transition: margin-left 0.25s ease;
+  padding: 20px;
 }
 
 .main-content.collapsed {
   margin-left: 56px;
 }
 
-@media (max-width: 768px) {
-  .main-content,
-  .main-content.collapsed {
-    margin-left: 0;
-  }
-}
-
-/* ── Search Result Panel ──────────────────────────────────────── */
-.search-result-panel {
-  position: fixed;
-  bottom: 0;
-  left: 220px;
-  right: 0;
+.right-panel {
+  flex: 0 0 30%;
+  border-left: 1px solid var(--border);
   background: var(--bg);
-  border-top: 1px solid var(--border);
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
   padding: 20px;
-  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
-  z-index: 900;
-  transition: left 0.25s ease;
 }
 
-.search-result-panel.collapsed {
-  left: 56px;
+.right-panel-header {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 16px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+.document-partition {
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.document-partition-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+
+.document-partition-content {
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.5;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+
+/* ── Search Input Panel ────────────────────────────────────────── */
+.search-input-panel {
+  width: 100%;
+  max-width: 900px;
+  background: #fafafa;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.search-input-panel:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: #7baad8;
+}
+
+.search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.search-input-icon {
+  position: absolute;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  color: #7baad8;
+  font-size: 16px;
+  z-index: 1;
+}
+
+.search-input-field {
+  width: 100%;
+  height: 44px;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+  background: #fff;
+  color: #1a1a1a;
+  font-size: 14px;
+  padding: 0 100px 0 40px;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.search-input-field:focus {
+  border-color: #7baad8;
+  box-shadow: 0 0 0 3px rgba(123, 170, 216, 0.18);
+}
+
+.search-input-field::placeholder {
+  color: #999;
+}
+
+.search-clear-btn {
+  position: absolute;
+  right: 50px;
+  background: none;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  transition: color 0.2s ease;
+}
+
+.search-clear-btn:hover {
+  color: #7baad8;
+}
+
+.search-submit-btn {
+  position: absolute;
+  right: 8px;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 4px;
+  border: none;
+  background: #7baad8;
+  color: white;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.search-submit-btn:hover {
+  filter: brightness(1.1);
+}
+
+.search-submit-btn:active {
+  transform: scale(0.97);
+}
+/* ── Search Result Panel ──────────────────────────────────────── */
+.search-result-panel-top {
+  width: 100%;
+  max-width: 900px;
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
 }
 
 .search-result-panel-header {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   margin-bottom: 8px;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
 }
 
 .search-result-panel-content {
-  font-size: 16px;
+  font-size: 14px;
   color: var(--text);
-  padding: 12px;
-  background: var(--bg-alt);
-  border-radius: 6px;
-  border: 1px solid var(--border);
+  line-height: 1.5;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   word-wrap: break-word;
 }
@@ -181,10 +309,342 @@
   font-style: italic;
 }
 
-@media (max-width: 768px) {
-  .search-result-panel,
-  .search-result-panel.collapsed {
-    left: 0;
-  }
+/* ── File Upload Styles ────────────────────────────────────────── */
+.upload-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
+
+.upload-button {
+  width: 100%;
+  padding: 12px;
+  background: #7baad8;
+  color: #000000;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease, opacity 0.2s ease;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+.upload-button:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.upload-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.files-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background: var(--bg);
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.file-name {
+  color: var(--text);
+  font-weight: 500;
+  word-break: break-word;
+  flex: 1;
+}
+
+.file-size {
+  color: var(--text-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* ── Collections Styles ────────────────────────────────────────── */
+.collections-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.collections-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.form-select,
+.form-input {
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-alt);
+  color: var(--text);
+  font-size: 14px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.form-select:focus,
+.form-input:focus {
+  border-color: #7baad8;
+  outline: 2px solid #7baad8;
+  outline-offset: -1px;
+}
+
+.vectorize-button {
+  padding: 12px;
+  background: #7baad8;
+  color: #000000;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease, opacity 0.2s ease;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+.vectorize-button:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.vectorize-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.search-results {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ── Search Result Card Styling ────────────────────────────────── */
+.search-result-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background: #fafafa;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  width: 100%;
+  max-width: 1000px;
+}
+
+.search-result-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: #7baad8;
+  background: #fff;
+}
+
+.search-result-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid #e0e0e0;
+  padding-bottom: 12px;
+}
+
+.search-result-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #7baad8;
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.search-result-title {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a1a1a;
+  word-break: break-word;
+}
+
+.search-result-score {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  min-width: 80px;
+}
+
+.relevance-label {
+  font-size: 12px;
+  color: #666;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.relevance-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #4caf50;
+}
+
+.search-result-preview {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #555;
+  padding: 8px 0;
+}
+
+/* ── Search Results Analytics Section ──────────────────────────── */
+.search-results-analytics {
+  width: 100%;
+  max-width: 1000px;
+  display: flex;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+/* ── Search Chart Styling ──────────────────────────────────────── */
+.search-chart-container {
+  flex: 7;
+  background: #fafafa;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.search-chart-container:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: #7baad8;
+}
+
+.search-chart-header {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 16px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+/* ── Documents List Panel ──────────────────────────────────────── */
+.documents-list-panel {
+  flex: 3;
+  background: #fafafa;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.documents-list-panel:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: #7baad8;
+}
+
+.documents-list-header {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 16px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+.documents-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  max-height: 350px;
+}
+
+.document-list-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px;
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.document-list-item:hover {
+  background: #f5f5f5;
+  border-color: #7baad8;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.document-rank {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #7baad8;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.document-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.document-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #1a1a1a;
+  word-break: break-word;
+  line-height: 1.3;
+}
+
+.document-relevance {
+  font-size: 12px;
+  color: #4caf50;
+  font-weight: 600;
+}
+
 

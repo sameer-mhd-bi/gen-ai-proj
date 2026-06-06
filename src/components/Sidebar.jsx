@@ -1,13 +1,27 @@
-import React from 'react';
-import { FaHome, FaUser, FaCog, FaChartBar, FaEnvelope, FaFileAlt, FaBars, FaTimes, FaFolder } from 'react-icons/fa';
+import React, { useState, useEffect } from 'react';
+import { FaHome, FaUser, FaCog, FaChartBar, FaEnvelope, FaFileAlt, FaBars, FaTimes, FaFolder, FaSearch } from 'react-icons/fa';
 import './Sidebar.css';
 
-const Sidebar = ({ collapsed, open, onToggle }) => {
+const Sidebar = ({ collapsed, open, onToggle, activePath, onPathChange }) => {
   const navItems = [
-    { path: '/collection', label: 'Collection', icon: <FaFolder /> },
+    { path: '/search', label: 'Search', icon: <FaSearch /> },
+    { path: '/collections', label: 'Collections', icon: <FaFolder /> },
     { path: '/documents', label: 'Documents', icon: <FaFileAlt /> },
     { path: '/settings', label: 'Settings', icon: <FaCog /> },
   ];
+
+  useEffect(() => {
+    // Set active path based on current URL if not already set
+    const currentPath = window.location.pathname;
+    const matchingItem = navItems.find(item => item.path === currentPath);
+    if (matchingItem) {
+      onPathChange(currentPath);
+    }
+  }, []);
+
+  const handleNavClick = (path) => {
+    onPathChange(path);
+  };
 
   return (
     <>
@@ -22,7 +36,8 @@ const Sidebar = ({ collapsed, open, onToggle }) => {
           <a
             key={item.path}
             href={item.path}
-            className="sidebar-nav-item"
+            className={`sidebar-nav-item ${activePath === item.path ? 'active' : ''}`}
+            onClick={() => handleNavClick(item.path)}
           >
             <span className="sidebar-nav-icon">{item.icon}</span>
             <span className="sidebar-nav-link">{item.label}</span>
