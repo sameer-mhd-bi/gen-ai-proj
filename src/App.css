@@ -1,0 +1,190 @@
+.app-layout {
+  display: flex;
+  flex-direction: row;
+  min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+/* ── Topbar ────────────────────────────────────────────────────── */
+.topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 20px;
+  padding-left: 240px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  transition: padding-left 0.25s ease;
+}
+
+.topbar.collapsed {
+  padding-left: 76px;
+}
+
+@media (max-width: 768px) {
+  .topbar,
+  .topbar.collapsed {
+    padding: 10px 12px;
+    padding-left: 12px;
+  }
+}
+
+/* ── Topbar search wrapper ─────────────────────────────────────── */
+.topbar-search-wrapper {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  max-width: 1200px;
+}
+
+/* Search icon positioned inside the input on the left */
+.topbar-search-icon-left {
+  position: absolute;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  color: var(--text-muted);
+  font-size: 16px;
+  z-index: 1;
+}
+
+/* ── Topbar search input ───────────────────────────────────────── */
+.topbar-search-input {
+  width: 100%;
+  height: 44px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--input-bg, var(--bg-alt));
+  color: var(--text);
+  font-size: 15px;
+  padding: 0 100px 0 40px;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.2s ease, outline 0.2s ease, box-shadow 0.2s ease;
+}
+
+.topbar-search-input:focus {
+  outline: 2px solid #7baad8;
+  border-color: #7baad8;
+  box-shadow: 0 0 0 3px rgba(123, 170, 216, 0.18);
+}
+
+/* ── Keyboard shortcut hint badge ─────────────────────────────── */
+/* ── Topbar search actions (clear + hint container) ───────────── */
+.topbar-search-actions {
+  position: absolute;
+  right: 88px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ── Clear button ──────────────────────────────────────────────── */
+/* ── Search button ─────────────────────────────────────────────── */
+.topbar-search-btn {
+  position: absolute;
+  right: 4px;
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 6px;
+  border: none;
+  background: #7baad8;
+  color: #000000;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
+  white-space: nowrap;
+}
+
+.topbar-search-btn:hover {
+  filter: brightness(1.1);
+}
+
+.topbar-search-btn:active {
+  transform: scale(0.97);
+}
+
+/* ── Main content area ─────────────────────────────────────────── */
+.main-content {
+  margin-left: 220px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+  padding-top: 66px; /* Increased to account for topbar height */
+  transition: margin-left 0.25s ease;
+}
+
+.main-content.collapsed {
+  margin-left: 56px;
+}
+
+@media (max-width: 768px) {
+  .main-content,
+  .main-content.collapsed {
+    margin-left: 0;
+  }
+}
+
+/* ── Search Result Panel ──────────────────────────────────────── */
+.search-result-panel {
+  position: fixed;
+  bottom: 0;
+  left: 220px;
+  right: 0;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  padding: 20px;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 900;
+  transition: left 0.25s ease;
+}
+
+.search-result-panel.collapsed {
+  left: 56px;
+}
+
+.search-result-panel-header {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+.search-result-panel-content {
+  font-size: 16px;
+  color: var(--text);
+  padding: 12px;
+  background: var(--bg-alt);
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  word-wrap: break-word;
+}
+
+.search-result-panel-empty {
+  font-size: 14px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+@media (max-width: 768px) {
+  .search-result-panel,
+  .search-result-panel.collapsed {
+    left: 0;
+  }
+}
+
