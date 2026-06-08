@@ -30,6 +30,9 @@ function App() {
   const [selectedCollections, setSelectedCollections] = useState([])
   const [isDeleting, setIsDeleting] = useState(false)
   const [isTabLoading, setIsTabLoading] = useState(false)
+  const [selectedCollectionForChunks, setSelectedCollectionForChunks] = useState(null)
+  const [isLoadingChunks, setIsLoadingChunks] = useState(false)
+  const [collectionChunks, setCollectionChunks] = useState([])
   const searchInputRef = useRef(null)
   const fileInputRef = useRef(null)
   const debounceTimer = useRef(null)
@@ -72,9 +75,28 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
-  // Handle tab switching with loading state
+  // Handle tab switching with loading state and selective state reset
   useEffect(() => {
     setIsTabLoading(true)
+    
+    // Reset state only for non-search tabs when switching
+    const resetTabState = () => {
+      if (activePath === '/collections') {
+        // Reset collections tab state
+        setSelectedCollection('')
+        setSelectedPdfForVectorization('')
+        setSelectedCollectionForChunks(null)
+        setCollectionChunks([])
+      } else if (activePath === '/documents') {
+        // Reset documents tab state
+        setSelectedDocument(null)
+        setSelectedDocuments([])
+        setSelectedCollections([])
+      }
+      // Search tab state is NOT reset - it persists across tabs
+    }
+
+    resetTabState()
     
     // Simulate minimal loading time and refresh data based on active tab
     const loadTabData = async () => {
@@ -226,6 +248,27 @@ function App() {
       }
     } catch (error) {
       console.error('Error fetching collections:', error)
+    }
+  }
+
+  const fetchChunksForCollection = async (collectionName) => {
+    setIsLoadingChunks(true)
+    try {
+      const response = await fetch(`http://localhost:5000/api/collections/${collectionName}/chunks`)
+      if (response.ok) {
+        const data = await response.json()
+        console.log('Chunks fetched:', data.chunks)
+        setCollectionChunks(data.chunks || [])
+        setSelectedCollectionForChunks(collectionName)
+      } else {
+        console.error('Failed to fetch chunks:', response.status)
+        alert('Failed to fetch chunks')
+      }
+    } catch (error) {
+      console.error('Error fetching chunks:', error)
+      alert('Error fetching chunks')
+    } finally {
+      setIsLoadingChunks(false)
     }
   }
 
@@ -673,7 +716,15 @@ function App() {
                             {collection.name}
                           </div>
                           <div className="document-partition-content" style={{ marginBottom: '8px' }}>
-                            Total Chunks: {collection.count}
+                            <span 
+                              style={{ cursor: 'pointer', color: '#7baad8', textDecoration: 'underline' }}
+                              onClick={() => fetchChunksForCollection(collection.name)}
+                              role="button"
+                              tabIndex={0}
+                              onKeyDown={(e) => e.key === 'Enter' && fetchChunksForCollection(collection.name)}
+                            >
+                              Total Chunks: {collection.count}
+                            </span>
                           </div>
                           {collection.pdfs && collection.pdfs.length > 0 && (
                             <div style={{ fontSize: '13px', color: '#666', marginTop: '8px' }}>
@@ -730,6 +781,50 @@ function App() {
                       </button>
                     </div>
                   )}
+                </div>
+              )}
+
+              {selectedCollectionForChunks && (
+                <div className="chunks-modal-overlay" onClick={() => setSelectedCollectionForChunks(null)}>
+                  <div className="chunks-modal-container" onClick={(e) => e.stopPropagation()}>
+                    <div className="chunks-modal-header">
+                      <span className="chunks-modal-title">
+                        Chunks from "{selectedCollectionForChunks}" ({collectionChunks.length} total)
+                      </span>
+                      <button 
+                        className="chunks-modal-close"
+                        onClick={() => setSelectedCollectionForChunks(null)}
+                        aria-label="Close chunks viewer"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    <div className="chunks-modal-content">
+                      {isLoadingChunks ? (
+                        <div style={{ textAlign: 'center', padding: '20px', color: '#999' }}>
+                          Loading chunks... Please wait.
+                        </div>
+                      ) : collectionChunks.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '20px', color: '#999' }}>
+                          No chunks found in this collection.
+                        </div>
+                      ) : (
+                        <div className="chunks-list">
+                          {collectionChunks.map((chunk, index) => (
+                            <div key={index} className="chunk-item">
+                              <div className="chunk-header">
+                                <div className="chunk-number">Chunk {chunk.id}</div>
+                                <div className="chunk-source">{chunk.source}</div>
+                              </div>
+                              <div className="chunk-content">
+                                {chunk.content}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

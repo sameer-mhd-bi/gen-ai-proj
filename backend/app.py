@@ -367,5 +367,37 @@ def vectorize_pdf():
     except Exception as e:
         return jsonify({'error': f'Vectorization failed: {str(e)}'}), 500
 
+@app.route('/api/collections/<collection_name>/chunks', methods=['GET'])
+def get_collection_chunks(collection_name):
+    """
+    API endpoint to fetch all chunks from a specific collection
+    """
+    try:
+        safe_name = secure_filename(collection_name)
+        collection = client.get_collection(safe_name)
+        
+        # Get all documents and metadata from the collection
+        results = collection.get(include=['documents', 'metadatas'])
+        
+        chunks = []
+        if results and results['documents']:
+            for idx, (doc, metadata) in enumerate(zip(results['documents'], results['metadatas'])):
+                chunks.append({
+                    'id': idx + 1,
+                    'content': doc,
+                    'source': metadata.get('source', 'unknown') if metadata else 'unknown',
+                    'chunk_id': metadata.get('chunk_id', idx) if metadata else idx
+                })
+        
+        return jsonify({
+            'status': 'success',
+            'collection': collection_name,
+            'chunks': chunks,
+            'total_chunks': len(chunks)
+        }), 200
+    
+    except Exception as e:
+        return jsonify({'error': f'Failed to fetch chunks: {str(e)}'}), 500
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
