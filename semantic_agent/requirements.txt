@@ -1,0 +1,8 @@
+pydantic-ai-slim[web]
+openai
+python-dotenv
+neo4j
+sentence_transformers
+psycopg
+logfire
+#uv pip install -r requirements.txt
