@@ -401,3 +401,124 @@ def get_collection_chunks(collection_name):
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
+
+
+"""
+================================================================================
+                        API ENDPOINTS DOCUMENTATION
+================================================================================
+
+1. HEALTH CHECK
+   ┌─ Endpoint: GET /api/health
+   ├─ Description: Health check endpoint to verify API is running
+   ├─ Parameters: None
+   └─ Response: { 'status': 'ok', 'message': 'Flask API is running' }
+
+2. DOCUMENT UPLOAD & MANAGEMENT
+   ┌─ Endpoint: POST /api/upload
+   ├─ Description: Upload a PDF file to the server
+   ├─ Parameters:
+   │  └─ file (multipart form data): PDF file to upload
+   └─ Response: { 'status': 'success', 'message': '...', 'filename': '...', 'path': '...' }
+
+   ┌─ Endpoint: GET /api/documents
+   ├─ Description: List all uploaded PDF files
+   ├─ Parameters: None
+   └─ Response: { 'status': 'success', 'files': [...], 'count': 0 }
+
+   ┌─ Endpoint: GET /api/documents/<filename>
+   ├─ Description: Serve/display a specific PDF file
+   ├─ Parameters: 
+   │  └─ filename (path parameter): Name of the PDF file
+   └─ Response: PDF file (application/pdf)
+
+   ┌─ Endpoint: DELETE /api/documents/<filename>
+   ├─ Description: Delete a specific PDF file
+   ├─ Parameters:
+   │  └─ filename (path parameter): Name of the PDF file to delete
+   └─ Response: { 'status': 'success', 'message': '...' }
+
+   ┌─ Endpoint: GET /api/pdf-list
+   ├─ Description: List all available PDF files for dropdown selection
+   ├─ Parameters: None
+   └─ Response: { 'status': 'success', 'files': [...], 'count': 0 }
+
+3. VECTORIZATION & COLLECTION MANAGEMENT
+   ┌─ Endpoint: POST /api/vectorize
+   ├─ Description: Vectorize PDF and store chunks in a ChromaDB collection
+   ├─ Parameters (JSON):
+   │  ├─ filename: Name of the PDF file to vectorize
+   │  └─ collection_name: Name of the collection to store vectors
+   ├─ Process:
+   │  ├─ Extract text from PDF
+   │  ├─ Split into chunks (chunk_size=600, overlap=100)
+   │  ├─ Generate embeddings using SentenceTransformer
+   │  └─ Store in ChromaDB collection
+   └─ Response: { 'status': 'success', 'collection': '...', 'chunks_count': 0, 'pdf_file': '...' }
+
+   ┌─ Endpoint: GET /api/collections
+   ├─ Description: List all available collections with metadata
+   ├─ Parameters: None
+   └─ Response: { 'status': 'success', 'collections': [...], 'count': 0 }
+   │  Each collection contains: { 'name': '...', 'count': 0, 'pdfs': [...] }
+
+   ┌─ Endpoint: DELETE /api/collections/<collection_name>
+   ├─ Description: Delete an entire collection and all its vectors
+   ├─ Parameters:
+   │  └─ collection_name (path parameter): Name of the collection to delete
+   └─ Response: { 'status': 'success', 'message': '...' }
+
+   ┌─ Endpoint: GET /api/collections/<collection_name>/chunks
+   ├─ Description: Fetch all chunks from a specific collection
+   ├─ Parameters:
+   │  └─ collection_name (path parameter): Name of the collection
+   └─ Response: { 'status': 'success', 'collection': '...', 'chunks': [...], 'total_chunks': 0 }
+   │  Each chunk contains: { 'id': 0, 'content': '...', 'source': '...', 'chunk_id': 0 }
+
+4. SEARCH
+   ┌─ Endpoint: POST /api/search
+   ├─ Description: Search for relevant documents in a collection
+   ├─ Parameters (JSON):
+   │  ├─ query: Search query string
+   │  └─ collection: Name of the collection to search in
+   ├─ Process:
+   │  ├─ Encode query using SentenceTransformer
+   │  ├─ Query ChromaDB collection for similar documents
+   │  ├─ Return top 3 most relevant results
+   │  └─ Calculate similarity scores
+   └─ Response: { 'status': 'success', 'query': '...', 'collection': '...', 'results': [...], 'message': '...' }
+   │  Each result contains: { 'content': '...', 'source': '...', 'similarity': 0.0 }
+
+================================================================================
+                           HELPER FUNCTIONS
+================================================================================
+
+allowed_file(filename)
+  └─ Description: Check if a file has an allowed extension (PDF only)
+  └─ Returns: Boolean
+
+get_chunks_from_pdf(pdf_path, chunk_size=600, overlap=100)
+  ├─ Description: Extract text from PDF and split into overlapping chunks
+  ├─ Parameters:
+  │  ├─ pdf_path: Path to the PDF file
+  │  ├─ chunk_size: Size of each chunk (default: 600 characters)
+  │  └─ overlap: Overlap between chunks (default: 100 characters)
+  └─ Returns: List of text chunks
+
+================================================================================
+                         DATABASE & CONFIGURATION
+================================================================================
+
+Upload Folder: backend/src_doc_files/
+  └─ Stores uploaded PDF files
+
+Database Folder: backend/knowledge_db/
+  └─ ChromaDB persistent storage for vector embeddings
+
+Max File Size: 50 MB
+
+Embedding Model: sentence-transformers/all-MiniLM-L6-v2
+  └─ Fast and efficient model for semantic search
+
+================================================================================
+"""
