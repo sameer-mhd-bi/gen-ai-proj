@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import './App.css'
 import Sidebar from './components/Sidebar'
-import { FaBars, FaSearch, FaTimes } from 'react-icons/fa'
+import { FaBars, FaSearch, FaTimes, FaTrash } from 'react-icons/fa'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
 function App() {
@@ -25,6 +25,11 @@ function App() {
     // Initialize from localStorage if it exists
     return localStorage.getItem('selectedCollection') || ''
   })
+  const [selectedDocument, setSelectedDocument] = useState(null)
+  const [selectedDocuments, setSelectedDocuments] = useState([])
+  const [selectedCollections, setSelectedCollections] = useState([])
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [isTabLoading, setIsTabLoading] = useState(false)
   const searchInputRef = useRef(null)
   const fileInputRef = useRef(null)
   const debounceTimer = useRef(null)
@@ -66,6 +71,28 @@ function App() {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
+
+  // Handle tab switching with loading state
+  useEffect(() => {
+    setIsTabLoading(true)
+    
+    // Simulate minimal loading time and refresh data based on active tab
+    const loadTabData = async () => {
+      if (activePath === '/documents') {
+        await fetchDocuments()
+      } else if (activePath === '/collections') {
+        await fetchCollections()
+      }
+      setIsTabLoading(false)
+    }
+
+    // Use requestAnimationFrame to ensure smooth transition
+    const timer = requestAnimationFrame(() => {
+      loadTabData()
+    })
+
+    return () => cancelAnimationFrame(timer)
+  }, [activePath])
 
   const handleSearch = async () => {
     if (!inputValue.trim()) {
@@ -244,6 +271,153 @@ function App() {
     }
   }
 
+  const handleDeleteDocuments = async () => {
+    if (selectedDocuments.length === 0) {
+      alert('Please select at least one document to delete')
+      return
+    }
+
+    if (!confirm(`Are you sure you want to delete ${selectedDocuments.length} document(s)? This action cannot be undone.`)) {
+      return
+    }
+
+    setIsDeleting(true)
+    try {
+      for (const filename of selectedDocuments) {
+        const response = await fetch(`http://localhost:5000/api/documents/${filename}`, {
+          method: 'DELETE',
+        })
+
+        if (!response.ok) {
+          const error = await response.json()
+          throw new Error(error.error || `Failed to delete ${filename}`)
+        }
+      }
+
+      console.log('Documents deleted successfully')
+      alert(`Successfully deleted ${selectedDocuments.length} document(s)`)
+      setSelectedDocuments([])
+      await fetchDocuments()
+    } catch (error) {
+      console.error('Error deleting documents:', error)
+      alert(`Error deleting documents: ${error.message}`)
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  const handleDeleteCollections = async () => {
+    if (selectedCollections.length === 0) {
+      alert('Please select at least one collection to delete')
+      return
+    }
+
+    if (!confirm(`Are you sure you want to delete ${selectedCollections.length} collection(s)? This action cannot be undone.`)) {
+      return
+    }
+
+    setIsDeleting(true)
+    try {
+      for (const collectionName of selectedCollections) {
+        const response = await fetch(`http://localhost:5000/api/collections/${collectionName}`, {
+          method: 'DELETE',
+        })
+
+        if (!response.ok) {
+          const error = await response.json()
+          throw new Error(error.error || `Failed to delete ${collectionName}`)
+        }
+      }
+
+      console.log('Collections deleted successfully')
+      alert(`Successfully deleted ${selectedCollections.length} collection(s)`)
+      setSelectedCollections([])
+      if (selectedCollections.includes(defaultCollection)) {
+        setDefaultCollection('')
+      }
+      await fetchCollections()
+    } catch (error) {
+      console.error('Error deleting collections:', error)
+      alert(`Error deleting collections: ${error.message}`)
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  const toggleDocumentSelection = (filename) => {
+    setSelectedDocuments(prev =>
+      prev.includes(filename)
+        ? prev.filter(f => f !== filename)
+        : [...prev, filename]
+    )
+  }
+
+  const toggleCollectionSelection = (collectionName) => {
+    setSelectedCollections(prev =>
+      prev.includes(collectionName)
+        ? prev.filter(c => c !== collectionName)
+        : [...prev, collectionName]
+    )
+  }
+
+  const handleDeleteSingleDocument = async (filename) => {
+    if (!confirm(`Are you sure you want to delete "${filename}"? This action cannot be undone.`)) {
+      return
+    }
+
+    setIsDeleting(true)
+    try {
+      const response = await fetch(`http://localhost:5000/api/documents/${filename}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || `Failed to delete ${filename}`)
+      }
+
+      console.log('Document deleted successfully:', filename)
+      if (selectedDocument?.name === filename) {
+        setSelectedDocument(null)
+      }
+      await fetchDocuments()
+    } catch (error) {
+      console.error('Error deleting document:', error)
+      alert(`Error deleting document: ${error.message}`)
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  const handleDeleteSingleCollection = async (collectionName) => {
+    if (!confirm(`Are you sure you want to delete collection "${collectionName}"? This action cannot be undone.`)) {
+      return
+    }
+
+    setIsDeleting(true)
+    try {
+      const response = await fetch(`http://localhost:5000/api/collections/${collectionName}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || `Failed to delete ${collectionName}`)
+      }
+
+      console.log('Collection deleted successfully:', collectionName)
+      if (defaultCollection === collectionName) {
+        setDefaultCollection('')
+      }
+      await fetchCollections()
+    } catch (error) {
+      console.error('Error deleting collection:', error)
+      alert(`Error deleting collection: ${error.message}`)
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
 
   return (
     <div className="app-layout">
@@ -257,6 +431,11 @@ function App() {
           onPathChange={setActivePath}
         />
         <main className={`main-content${isCollapsed ? ' collapsed' : ''}${isMobile ? ' mobile' : ''}`}>
+          {isTabLoading && (
+            <div className="tab-loading-overlay">
+              <div className="tab-loading-spinner"></div>
+            </div>
+          )}
           {activePath === '/search' && (
             <>
               <div className="search-input-panel">
@@ -349,13 +528,11 @@ function App() {
                         <div className="search-result-title">{result.source}</div>
                         <div className="search-result-score">
                           <span className="relevance-label">Relevance</span>
-                          <span className="relevance-value">{(result.similarity * 100).toFixed(0)}%</span>
+                          <span className={`relevance-value ${result.similarity < 0 ? 'negative' : ''}`}>{(result.similarity * 100).toFixed(0)}%</span>
                         </div>
                       </div>
                       <div className="search-result-preview">
-                        {result.content.length > 300 
-                          ? result.content.substring(0, 300) + '...' 
-                          : result.content}
+                        {result.content}
                       </div>
                     </div>
                   ))}
@@ -422,7 +599,7 @@ function App() {
                             <div className="document-rank">{index + 1}</div>
                             <div className="document-info">
                               <div className="document-name">{result.source}</div>
-                              <div className="document-relevance">{(result.similarity * 100).toFixed(1)}%</div>
+                              <div className={`document-relevance ${result.similarity < 0 ? 'negative' : ''}`}>{(result.similarity * 100).toFixed(1)}%</div>
                             </div>
                           </div>
                         ))}
@@ -478,25 +655,52 @@ function App() {
                 <div className="search-result-panel-top">
                   <div className="search-result-panel-header">Available Collections ({collections.length})</div>
                   {collections.map((collection) => (
-                    <div key={collection.name} className="document-partition" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ flex: 1 }}>
-                        <div className="document-partition-title">
-                          <input
-                            type="radio"
-                            name="default-collection"
-                            value={collection.name}
-                            checked={defaultCollection === collection.name}
-                            onChange={(e) => {
-                              console.log('Radio button changed to:', e.target.value)
-                              setDefaultCollection(e.target.value)
-                            }}
-                            style={{ marginRight: '10px', cursor: 'pointer' }}
-                          />
-                          {collection.name}
+                    <div key={collection.name} className="document-partition" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div style={{ flex: 1, display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                        <div style={{ flex: 1 }}>
+                          <div className="document-partition-title" style={{ marginBottom: '0' }}>
+                            <input
+                              type="radio"
+                              name="default-collection"
+                              value={collection.name}
+                              checked={defaultCollection === collection.name}
+                              onChange={(e) => {
+                                console.log('Radio button changed to:', e.target.value)
+                                setDefaultCollection(e.target.value)
+                              }}
+                              style={{ marginRight: '10px', cursor: 'pointer' }}
+                            />
+                            {collection.name}
+                          </div>
+                          <div className="document-partition-content" style={{ marginBottom: '8px' }}>
+                            Total Chunks: {collection.count}
+                          </div>
+                          {collection.pdfs && collection.pdfs.length > 0 && (
+                            <div style={{ fontSize: '13px', color: '#666', marginTop: '8px' }}>
+                              <div style={{ fontWeight: '500', marginBottom: '4px' }}>PDFs in this collection:</div>
+                              {collection.pdfs.map((pdf, idx) => (
+                                <div key={idx} style={{ 
+                                  fontSize: '12px', 
+                                  color: '#7baad8', 
+                                  marginLeft: '16px',
+                                  wordBreak: 'break-word',
+                                  marginBottom: '2px'
+                                }}>
+                                  • {pdf}
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                        <div className="document-partition-content">
-                          Documents: {collection.count}
-                        </div>
+                        <button
+                          className="collection-delete-btn"
+                          onClick={() => handleDeleteSingleCollection(collection.name)}
+                          disabled={isDeleting}
+                          aria-label={`Delete ${collection.name}`}
+                          title="Delete collection"
+                        >
+                          <FaTrash />
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -530,48 +734,92 @@ function App() {
               )}
             </div>
           )}
-        </main>
-        {!isMobile && activePath === '/documents' && (
-          <div className="right-panel">
-            <div className="right-panel-header">Document Details</div>
-            
-            <div className="document-partition">
-              <div className="document-partition-title">Upload PDF</div>
-              <div className="upload-box">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".pdf"
-                  onChange={handleFileUpload}
-                  disabled={isUploading}
-                  style={{ display: 'none' }}
-                  aria-label="Upload PDF file"
-                />
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isUploading}
-                  className="upload-button"
-                >
-                  {isUploading ? 'Uploading...' : '+ Upload PDF'}
-                </button>
-              </div>
-            </div>
-
-            {uploadedFiles.length > 0 && (
-              <div className="document-partition">
-                <div className="document-partition-title">Uploaded Files ({uploadedFiles.length})</div>
-                <div className="files-list">
-                  {uploadedFiles.map((file, index) => (
-                    <div key={index} className="file-item">
-                      <span className="file-name">{file.name}</span>
-                      <span className="file-size">({(file.size / 1024).toFixed(2)} KB)</span>
-                    </div>
-                  ))}
+          {activePath === '/documents' && (
+            <div className="collections-container">
+              <div className="search-result-panel-top">
+                <div className="search-result-panel-header">Document Details</div>
+                
+                <div className="document-partition">
+                  <div className="document-partition-title">Upload PDF</div>
+                  <div className="upload-box">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".pdf"
+                      onChange={handleFileUpload}
+                      disabled={isUploading}
+                      style={{ display: 'none' }}
+                      aria-label="Upload PDF file"
+                    />
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploading}
+                      className="upload-button"
+                    >
+                      {isUploading ? 'Uploading...' : '+ Upload PDF'}
+                    </button>
+                  </div>
                 </div>
+
+                {uploadedFiles.length > 0 && (
+                  <div className="document-partition">
+                    <div className="document-partition-title">Uploaded Files ({uploadedFiles.length})</div>
+                    <div className="files-list">
+                      {uploadedFiles.map((file, index) => (
+                        <div 
+                          key={index} 
+                          className="file-item"
+                          style={{ backgroundColor: selectedDocument?.name === file.name ? '#e8f4f8' : 'var(--bg)' }}
+                        >
+                          <span 
+                            className="file-name"
+                            onClick={() => setSelectedDocument(file)}
+                            style={{ flex: 1, cursor: 'pointer' }}
+                          >
+                            {file.name}
+                          </span>
+                          <span className="file-size">({(file.size / 1024).toFixed(2)} KB)</span>
+                          <button
+                            className="file-delete-btn"
+                            onClick={() => handleDeleteSingleDocument(file.name)}
+                            disabled={isDeleting}
+                            aria-label={`Delete ${file.name}`}
+                            title="Delete document"
+                          >
+                            <FaTrash />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        )}
+
+              {selectedDocument && (
+                <div className="pdf-modal-overlay" onClick={() => setSelectedDocument(null)}>
+                  <div className="pdf-modal-container" onClick={(e) => e.stopPropagation()}>
+                    <div className="pdf-modal-header">
+                      <span className="pdf-modal-title">Viewing: {selectedDocument.name}</span>
+                      <button 
+                        className="pdf-modal-close"
+                        onClick={() => setSelectedDocument(null)}
+                        aria-label="Close PDF viewer"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    <div className="pdf-modal-content">
+                      <iframe
+                        src={`http://localhost:5000/api/documents/${selectedDocument.name}`}
+                        title={selectedDocument.name}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </main>
       </div>
     </div>
   )

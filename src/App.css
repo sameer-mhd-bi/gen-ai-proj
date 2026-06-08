@@ -152,14 +152,43 @@
 }
 
 .document-partition {
-  width: 80%;
-  max-width: var(--content-width);
+  width: 100%;
+  max-width: 100%;
   background: var(--bg-alt);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 16px;
+  padding: 10px 12px;
   margin-bottom: 12px;
   box-sizing: border-box;
+  position: relative;
+}
+
+.collection-delete-btn {
+  background: none;
+  border: none;
+  color: #d32f2f;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  opacity: 0.7;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+.collection-delete-btn:hover:not(:disabled) {
+  opacity: 1;
+  background-color: rgba(211, 47, 47, 0.1);
+  color: #b71c1c;
+}
+
+.collection-delete-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
 }
 
 .document-partition-title {
@@ -286,7 +315,7 @@
   background: var(--bg-alt);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 16px;
+  padding: 10px 12px;
   margin-bottom: 12px;
   box-sizing: border-box;
 }
@@ -330,7 +359,7 @@
   max-width: 100%;
   padding: 12px;
   background: #7baad8;
-  color: #000000;
+  color: #f1eaea;
   border: none;
   border-radius: 6px;
   font-size: 14px;
@@ -368,6 +397,41 @@
   background: var(--bg);
   border-radius: 4px;
   font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.file-item:hover {
+  background: #e8f4f8;
+  border: 1px solid #7baad8;
+}
+
+.file-delete-btn {
+  background: none;
+  border: none;
+  color: #d32f2f;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 6px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+
+.file-delete-btn:hover:not(:disabled) {
+  opacity: 1;
+  background-color: rgba(211, 47, 47, 0.1);
+  color: #b71c1c;
+}
+
+.file-delete-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
 }
 
 .file-name {
@@ -395,6 +459,7 @@
 .collections-form {
   width: 100%;
   display: flex;
+  
   flex-direction: column;
   gap: 12px;
 }
@@ -436,7 +501,7 @@
 .vectorize-button {
   padding: 12px;
   background: #7baad8;
-  color: #000000;
+  color: #fffcfc;
   border: none;
   border-radius: 6px;
   font-size: 14px;
@@ -475,7 +540,7 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   transition: all 0.3s ease;
   width: 100%;
-  max-width: 98%;
+  max-width: 100%;
 }
 
 .search-result-card:hover {
@@ -536,6 +601,10 @@
   color: #4caf50;
 }
 
+.relevance-value.negative {
+  color: #d32f2f;
+}
+
 .search-result-preview {
   font-size: 14px;
   line-height: 1.6;
@@ -569,11 +638,13 @@
   padding: 20px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   transition: all 0.3s ease;
+  font-size: 14px;
 }
 
 .search-chart-container:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   border-color: #7baad8;
+  font-size: 13px;
 }
 
 .search-chart-header {
@@ -672,7 +743,7 @@
 .document-name {
   font-size: 13px;
   font-weight: 500;
-  color: #1a1a1a;
+  color: #ffffff;
   word-break: break-word;
   line-height: 1.3;
 }
@@ -681,6 +752,127 @@
   font-size: 12px;
   color: #4caf50;
   font-weight: 600;
+}
+
+.document-relevance.negative {
+  color: #d32f2f;
+}
+
+/* ── PDF Modal Popup Styles ────────────────────────────────────── */
+.pdf-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 20px;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.pdf-modal-container {
+  background: #fff;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 900px;
+  height: 90vh;
+  max-height: 800px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.pdf-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e0e0e0;
+  flex-shrink: 0;
+  background: #fafafa;
+  border-radius: 12px 12px 0 0;
+}
+
+.pdf-modal-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1a1a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pdf-modal-close {
+  background: none;
+  border: none;
+  color: #d32f2f;
+  cursor: pointer;
+  font-size: 24px;
+  font-weight: bold;
+  padding: 4px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  min-height: 32px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  margin-left: 12px;
+  flex-shrink: 0;
+}
+
+.pdf-modal-close:hover {
+  background-color: rgba(211, 47, 47, 0.1);
+  color: #b71c1c;
+}
+
+.pdf-modal-content {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+}
+
+.pdf-modal-content iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+@media (max-width: 768px) {
+  .pdf-modal-container {
+    max-width: 95vw;
+    height: 85vh;
+    max-height: 600px;
+  }
+
+  .pdf-modal-overlay {
+    padding: 10px;
+  }
 }
 
 .search-input-panel,

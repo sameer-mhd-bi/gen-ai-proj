@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 import os
 from werkzeug.utils import secure_filename
@@ -12,7 +12,7 @@ app = Flask(__name__)
 CORS(app, resources={
     r"/api/*": {
         "origins": ["*"],
-        "methods": ["GET", "POST", "OPTIONS"],
+        "methods": ["GET", "POST", "DELETE", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"]
     }
 })
@@ -196,6 +196,47 @@ def get_documents():
     except Exception as e:
         return jsonify({'error': f'Failed to fetch documents: {str(e)}'}), 500
 
+@app.route('/api/documents/<filename>', methods=['GET', 'DELETE'])
+def serve_pdf(filename):
+    """
+    API endpoint to serve PDF files for viewing or delete them
+    """
+    try:
+        # Secure the filename to prevent directory traversal
+        safe_filename = secure_filename(filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], safe_filename)
+        
+        # Check if file exists
+        if not os.path.exists(filepath):
+            return jsonify({'error': f'PDF file not found: {filename}'}), 404
+        
+        # Check if file is a PDF
+        if not safe_filename.lower().endswith('.pdf'):
+            return jsonify({'error': 'Only PDF files can be served'}), 400
+        
+        # Handle GET request - serve the file
+        if request.method == 'GET':
+            return send_file(
+                filepath,
+                mimetype='application/pdf',
+                as_attachment=False,
+                download_name=safe_filename
+            )
+        
+        # Handle DELETE request - delete the file
+        elif request.method == 'DELETE':
+            try:
+                os.remove(filepath)
+                return jsonify({
+                    'status': 'success',
+                    'message': f'Successfully deleted {filename}'
+                }), 200
+            except Exception as e:
+                return jsonify({'error': f'Failed to delete file: {str(e)}'}), 500
+    
+    except Exception as e:
+        return jsonify({'error': f'Failed to serve PDF: {str(e)}'}), 500
+
 @app.route('/api/pdf-list', methods=['GET'])
 def get_pdf_list():
     """
@@ -226,15 +267,25 @@ def get_pdf_list():
 @app.route('/api/collections', methods=['GET'])
 def get_collections():
     """
-    API endpoint to list all available collections
+    API endpoint to list all available collections with PDF sources
     """
     try:
         collections = client.list_collections()
         collection_list = []
         for collection in collections:
+            # Get all documents in the collection to extract unique PDF sources
+            results = collection.get()
+            pdf_sources = set()
+            
+            if results and results['metadatas']:
+                for metadata in results['metadatas']:
+                    if metadata and 'source' in metadata:
+                        pdf_sources.add(metadata['source'])
+            
             collection_list.append({
                 'name': collection.name,
-                'count': collection.count()
+                'count': collection.count(),
+                'pdfs': sorted(list(pdf_sources))
             })
         
         return jsonify({
@@ -245,6 +296,25 @@ def get_collections():
     
     except Exception as e:
         return jsonify({'error': f'Failed to fetch collections: {str(e)}'}), 500
+
+@app.route('/api/collections/<collection_name>', methods=['DELETE'])
+def delete_collection(collection_name):
+    """
+    API endpoint to delete a collection
+    """
+    try:
+        safe_name = secure_filename(collection_name)
+        
+        # Delete the collection
+        client.delete_collection(name=safe_name)
+        
+        return jsonify({
+            'status': 'success',
+            'message': f'Successfully deleted collection "{collection_name}"'
+        }), 200
+    
+    except Exception as e:
+        return jsonify({'error': f'Failed to delete collection: {str(e)}'}), 500
 
 @app.route('/api/vectorize', methods=['POST'])
 def vectorize_pdf():
