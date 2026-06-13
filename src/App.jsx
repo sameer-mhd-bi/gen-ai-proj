@@ -3,6 +3,7 @@ import './App.css'
 import Sidebar from './components/Sidebar'
 import { FaBars, FaSearch, FaTimes, FaTrash } from 'react-icons/fa'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import DimensionChart from './components/DimensionChart'
 
 function App() {
   const [searchQuery, setSearchQuery] = useState('')
@@ -33,6 +34,8 @@ function App() {
   const [selectedCollectionForChunks, setSelectedCollectionForChunks] = useState(null)
   const [isLoadingChunks, setIsLoadingChunks] = useState(false)
   const [collectionChunks, setCollectionChunks] = useState([])
+  const [dimensionData, setDimensionData] = useState([])
+  const [isDimensionLoading, setIsDimensionLoading] = useState(false)
   const searchInputRef = useRef(null)
   const fileInputRef = useRef(null)
   const debounceTimer = useRef(null)
@@ -165,6 +168,25 @@ function App() {
       if (data.results && data.results.length === 0) {
         console.warn('No results returned from search')
         setSearchError('No results found. Make sure you have vectorized PDFs in the selected collection.')
+      }
+
+      if (data.results && data.results.length > 0) {
+        setIsDimensionLoading(true)
+        try {
+         const dimResponse = await fetch(`http://localhost:5000/api/search/dimensions?collection=${encodeURIComponent(defaultCollection)}&query=${encodeURIComponent(inputValue)}`)
+          if (dimResponse.ok) {
+            const dimData = await dimResponse.json()
+            setDimensionData(Array.isArray(dimData) ? dimData : (dimData.dimensions || []))
+          } else {
+            console.error('Failed to fetch dimension stats:', dimResponse.status)
+            setDimensionData([])
+          }
+        } catch (dimError) {
+          console.error('Error fetching dimension stats:', dimError)
+          setDimensionData([])
+        } finally {
+          setIsDimensionLoading(false)
+        }
       }
     } catch (error) {
       console.error('Error during search:', error)
@@ -519,6 +541,8 @@ function App() {
                   </div>
                 </div>
               )}
+
+
               
               {defaultCollection && (
                 <div className="search-result-panel-top">
@@ -909,13 +933,23 @@ function App() {
                         title={selectedDocument.name}
                       />
                     </div>
+                    
                   </div>
                 </div>
+                
               )}
+            </div>
+          )}
+
+                    {searchResults.length > 0 && (
+            <div className="dimension-chart-section">
+              <div className="dimension-chart-header">Embedding Dimension Statistics</div>
+              <DimensionChart data={dimensionData} loading={isDimensionLoading} />
             </div>
           )}
         </main>
       </div>
+      
     </div>
   )
 }

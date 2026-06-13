@@ -399,6 +399,38 @@ def get_collection_chunks(collection_name):
     except Exception as e:
         return jsonify({'error': f'Failed to fetch chunks: {str(e)}'}), 500
 
+@app.route('/api/search/dimensions', methods=['GET'])
+def get_dimension_stats():
+    """
+    API endpoint to return per-dimension values of the query embedding vector.
+    Accepts 'collection' and 'query' as query parameters.
+    Returns a JSON array of { dimension_index, value } objects representing
+    each dimension of the encoded query vector.
+    """
+    collection_name = request.args.get('collection', '')
+    query = request.args.get('query', '')
+
+    if not collection_name:
+        return jsonify({'error': 'collection query parameter is required'}), 400
+
+    if not query:
+        return jsonify({'error': 'query parameter is required'}), 400
+
+    try:
+        # Encode the query text into a vector
+        query_vector = model.encode(query).tolist()
+
+        # Build the dimension array from the query vector
+        dimension_data = [
+            {'dimension_index': idx, 'value': value}
+            for idx, value in enumerate(query_vector)
+        ]
+
+        return jsonify(dimension_data), 200
+
+    except Exception as e:
+        return jsonify({'error': f'Failed to compute dimension data: {str(e)}'}), 500
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
 
