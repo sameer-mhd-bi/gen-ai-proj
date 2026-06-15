@@ -7,6 +7,7 @@ const Sidebar = ({ collapsed, open, onToggle, activePath, onPathChange }) => {
     { path: '/search', label: 'Search', icon: <FaSearch /> },
     { path: '/collections', label: 'Collections', icon: <FaFolder /> },
     { path: '/documents', label: 'Documents', icon: <FaFileAlt /> },
+    { path: '/knowledge-graph', label: 'Knowledge Graph', icon: <FaChartBar /> },
     { path: '/settings', label: 'Settings', icon: <FaCog /> },
   ];
 

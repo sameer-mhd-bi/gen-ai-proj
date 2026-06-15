@@ -48,26 +48,28 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def get_chunks_from_pdf(pdf_path, chunk_size=600, overlap=100):
-    """Extract and chunk PDF with overlap for better context"""
+    """Extract and chunk PDF with overlap for better context, tracking page numbers"""
     try:
         reader = PdfReader(pdf_path)
-        full_text = ""
-        for page in reader.pages:
+        chunks_with_pages = []
+        char_count = 0
+
+        for page_num, page in enumerate(reader.pages, 1):
             content = page.extract_text()
             if content:
-                full_text += content + "\n"
+                # Split content into chunks with overlap
+                for i in range(0, len(content), chunk_size - overlap):
+                    chunk = content[i:i + chunk_size].strip()
+                    if chunk:
+                        chunks_with_pages.append({
+                            'content': chunk,
+                            'page_number': page_num
+                        })
 
-        if not full_text.strip():
+        if not chunks_with_pages:
             return []
 
-        # Split into chunks with overlap
-        chunks = []
-        for i in range(0, len(full_text), chunk_size - overlap):
-            chunk = full_text[i:i + chunk_size].strip()
-            if chunk:
-                chunks.append(chunk)
-
-        return chunks
+        return chunks_with_pages
     except Exception as e:
         print(f"Error processing PDF {pdf_path}: {e}")
         return []
@@ -267,6 +269,7 @@ def search():
                 formatted_results.append({
                     'content': doc,
                     'source': metadata.get('source', 'unknown'),
+                    'page_number': metadata.get('page_number'),
                     'similarity': round(1 - distance, 3)
                 })
         
@@ -496,29 +499,34 @@ def vectorize_pdf():
             return jsonify({'error': f'PDF file not found: {pdf_filename}'}), 404
         
         # Get chunks from PDF
-        chunks = get_chunks_from_pdf(pdf_path)
-        if not chunks:
+        chunks_with_pages = get_chunks_from_pdf(pdf_path)
+        if not chunks_with_pages:
             return jsonify({'error': 'No text could be extracted from PDF'}), 400
         
         # Create or get collection
         collection = client.get_or_create_collection(collection_name)
         
         # Generate embeddings and add to collection
-        ids = [f"{pdf_filename}_{i}" for i in range(len(chunks))]
-        embeddings = model.encode(chunks).tolist()
+        ids = [f"{pdf_filename}_{i}" for i in range(len(chunks_with_pages))]
+        documents = [chunk['content'] for chunk in chunks_with_pages]
+        embeddings = model.encode(documents).tolist()
         
         collection.add(
             ids=ids,
             embeddings=embeddings,
-            documents=chunks,
-            metadatas=[{"source": pdf_filename, "chunk_id": i} for i in range(len(chunks))]
+            documents=documents,
+            metadatas=[{
+                "source": pdf_filename,
+                "chunk_id": i,
+                "page_number": chunk['page_number']
+            } for i, chunk in enumerate(chunks_with_pages)]
         )
         
         response = {
             'status': 'success',
-            'message': f'Successfully vectorized and stored {len(chunks)} chunks from {pdf_filename}',
+            'message': f'Successfully vectorized and stored {len(chunks_with_pages)} chunks from {pdf_filename}',
             'collection': collection_name,
-            'chunks_count': len(chunks),
+            'chunks_count': len(chunks_with_pages),
             'pdf_file': pdf_filename
         }
         
@@ -546,7 +554,8 @@ def get_collection_chunks(collection_name):
                     'id': idx + 1,
                     'content': doc,
                     'source': metadata.get('source', 'unknown') if metadata else 'unknown',
-                    'chunk_id': metadata.get('chunk_id', idx) if metadata else idx
+                    'chunk_id': metadata.get('chunk_id', idx) if metadata else idx,
+                    'page_number': metadata.get('page_number') if metadata else None
                 })
         
         return jsonify({

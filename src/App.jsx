@@ -100,6 +100,9 @@ function App() {
         setSelectedDocument(null)
         setSelectedDocuments([])
         setSelectedCollections([])
+      } else if (activePath === '/knowledge-graph') {
+        // Load uploaded files for KG extraction
+        // State remains to show extracted KG results
       }
       // Search tab state is NOT reset - it persists across tabs
     }
@@ -112,6 +115,8 @@ function App() {
         await fetchDocuments()
       } else if (activePath === '/collections') {
         await fetchCollections()
+      } else if (activePath === '/knowledge-graph') {
+        await fetchDocuments()
       }
       setIsTabLoading(false)
     }
@@ -707,17 +712,24 @@ function App() {
                   <div className="documents-list-panel">
                     <div className="documents-list-header">Documents by Relevance</div>
                     <div className="documents-list">
-                      {searchResults
+                      {[...searchResults]
                         .sort((a, b) => b.similarity - a.similarity)
-                        .map((result, index) => (
-                          <div key={index} className="document-list-item">
-                            <div className="document-rank">{index + 1}</div>
-                            <div className="document-info">
-                              <div className="document-name">{result.source}</div>
-                              <div className={`document-relevance ${result.similarity < 0 ? 'negative' : ''}`}>{(result.similarity * 100).toFixed(1)}%</div>
+                        .map((result, index) => {
+                          const pageNumber = result.page_number ?? result.pageNumber ?? result.page ?? result.metadata?.page_number
+
+                          return (
+                            <div key={index} className="document-list-item">
+                              <div className="document-rank">{index + 1}</div>
+                              <div className="document-info">
+                                <div className="document-name">{result.source}</div>
+                                <div className="document-page-number">
+                                  {pageNumber ? `Page ${pageNumber}` : 'Page unavailable'}
+                                </div>
+                                <div className={`document-relevance ${result.similarity < 0 ? 'negative' : ''}`}>{(result.similarity * 100).toFixed(1)}%</div>
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          )
+                        })}
                     </div>
                   </div>
                 </div>
@@ -887,6 +899,11 @@ function App() {
                               <div className="chunk-header">
                                 <div className="chunk-number">Chunk {chunk.id}</div>
                                 <div className="chunk-source">{chunk.source}</div>
+                                {chunk.page_number && (
+                                  <div className="chunk-page" style={{ fontSize: '12px', color: '#999', marginLeft: 'auto' }}>
+                                    Page {chunk.page_number}
+                                  </div>
+                                )}
                               </div>
                               <div className="chunk-content">
                                 {chunk.content}
@@ -986,7 +1003,10 @@ function App() {
                 </div>
                 
               )}
-
+            </div>
+          )}
+          {activePath === '/knowledge-graph' && (
+            <div className="collections-container">
               <div className="knowledge-graph-section" ref={knowledgeGraphRef}>
                 <div className="search-result-panel-top">
                   <div className="search-result-panel-header">Knowledge Graph Extraction</div>
