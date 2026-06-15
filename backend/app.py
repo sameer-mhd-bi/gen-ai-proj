@@ -269,7 +269,7 @@ def search():
                 formatted_results.append({
                     'content': doc,
                     'source': metadata.get('source', 'unknown'),
-                    'page_number': int(metadata.get('page_number')) if metadata.get('page_number') is not None else None,
+                    'page_number': (lambda v: (lambda: int(v))() if v not in (None, '', 'None') else None)(metadata.get('page_number')) if True else None,
                     'similarity': round(1 - distance, 3)
                 })
         
@@ -518,7 +518,7 @@ def vectorize_pdf():
             metadatas=[{
                 "source": pdf_filename,
                 "chunk_id": i,
-                "page_number": chunk['page_number']
+                "page_number": int(chunk['page_number'])
             } for i, chunk in enumerate(chunks_with_pages)]
         )
         
