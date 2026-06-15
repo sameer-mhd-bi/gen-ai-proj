@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import './App.css'
 import Sidebar from './components/Sidebar'
+import KnowledgeGraph from './components/KnowledgeGraph'
 import { FaBars, FaSearch, FaTimes, FaTrash } from 'react-icons/fa'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import DimensionChart from './components/DimensionChart'
@@ -36,9 +37,13 @@ function App() {
   const [collectionChunks, setCollectionChunks] = useState([])
   const [dimensionData, setDimensionData] = useState([])
   const [isDimensionLoading, setIsDimensionLoading] = useState(false)
+  const [knowledgeGraphTriplets, setKnowledgeGraphTriplets] = useState([])
+  const [isExtractingKG, setIsExtractingKG] = useState(false)
+  const [selectedPdfForKG, setSelectedPdfForKG] = useState('')
   const searchInputRef = useRef(null)
   const fileInputRef = useRef(null)
   const debounceTimer = useRef(null)
+  const knowledgeGraphRef = useRef(null)
 
   // Persist selected collection to localStorage whenever it changes
   useEffect(() => {
@@ -483,6 +488,49 @@ function App() {
     }
   }
 
+  const handleExtractKnowledgeGraph = async () => {
+    if (!selectedPdfForKG) {
+      alert('Please select a PDF file first')
+      return
+    }
+
+    setIsExtractingKG(true)
+    try {
+      const response = await fetch('http://localhost:5000/api/knowledge-graph', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          filename: selectedPdfForKG
+        })
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to extract knowledge graph')
+      }
+
+      const data = await response.json()
+      console.log('Knowledge graph extracted:', data)
+      setKnowledgeGraphTriplets(data.triplets || [])
+      
+      // Auto-scroll to knowledge graph after extraction
+      setTimeout(() => {
+        if (knowledgeGraphRef.current) {
+          knowledgeGraphRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }
+      }, 300)
+      
+      alert(`Successfully extracted ${data.triplets_extracted} triplets from ${data.total_sentences} sentences`)
+    } catch (error) {
+      console.error('Error extracting knowledge graph:', error)
+      alert(`Error extracting knowledge graph: ${error.message}`)
+      setKnowledgeGraphTriplets([])
+    } finally {
+      setIsExtractingKG(false)
+    }
+  }
 
   return (
     <div className="app-layout">
@@ -938,6 +986,43 @@ function App() {
                 </div>
                 
               )}
+
+              <div className="knowledge-graph-section" ref={knowledgeGraphRef}>
+                <div className="search-result-panel-top">
+                  <div className="search-result-panel-header">Knowledge Graph Extraction</div>
+                  <div className="knowledge-graph-form">
+                    <div className="form-group">
+                      <label>Select PDF for Knowledge Graph:</label>
+                      <select 
+                        value={selectedPdfForKG}
+                        onChange={(e) => setSelectedPdfForKG(e.target.value)}
+                        className="form-select"
+                      >
+                        <option value="">-- Select a PDF --</option>
+                        {uploadedFiles.map((file) => (
+                          <option key={file.name} value={file.name}>
+                            {file.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    <button
+                      onClick={handleExtractKnowledgeGraph}
+                      disabled={isExtractingKG || !selectedPdfForKG}
+                      className="extract-kg-button"
+                      title="Extract knowledge graph from PDF"
+                    >
+                      {isExtractingKG ? 'Extracting...' : '🔗 Extract Knowledge Graph'}
+                    </button>
+                  </div>
+                </div>
+
+                <KnowledgeGraph 
+                  triplets={knowledgeGraphTriplets}
+                  loading={isExtractingKG}
+                />
+              </div>
             </div>
           )}
 

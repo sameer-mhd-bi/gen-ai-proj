@@ -6,6 +6,8 @@ from pathlib import Path
 import chromadb
 from sentence_transformers import SentenceTransformer
 from pypdf import PdfReader
+import spacy
+from spacy.matcher import Matcher
 
 app = Flask(__name__)
 # Enable CORS with specific configuration
@@ -33,6 +35,13 @@ app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
 # Initialize ChromaDB and SentenceTransformer
 client = chromadb.PersistentClient(path=DB_FOLDER)
 model = SentenceTransformer('all-MiniLM-L6-v2')
+
+# Initialize spaCy NLP model for knowledge graph extraction
+try:
+    nlp = spacy.load('en_core_web_sm')
+except OSError:
+    print("spaCy model 'en_core_web_sm' not found. Please run: python -m spacy download en_core_web_sm")
+    nlp = None
 
 def allowed_file(filename):
     """Check if file has allowed extension"""
@@ -62,6 +71,157 @@ def get_chunks_from_pdf(pdf_path, chunk_size=600, overlap=100):
     except Exception as e:
         print(f"Error processing PDF {pdf_path}: {e}")
         return []
+
+def extract_sentences(text):
+    """
+    Extract sentences from text using spaCy.
+    
+    1. Loads the English language model 'en_core_web_sm', which provides
+       tokenization, part-of-speech tagging, and sentence boundary detection.
+    2. Passes the extracted text to the NLP pipeline, creating a Doc
+       object that stores linguistic annotations.
+    3. Iterates through the detected sentence spans (doc.sents) and
+       collects clean, non-empty sentence strings into a list called sentences.
+    4. Returns the total number of sentences extracted.
+    
+    Args:
+        text (str): The text to extract sentences from
+    
+    Returns:
+        list: A list of sentences
+    """
+    if not nlp:
+        return []
+    
+    try:
+        doc = nlp(text)
+        sentences = [sent.text.strip() for sent in doc.sents if sent.text.strip()]
+        print(f"Extracted {len(sentences)} sentences from text")
+        return sentences
+    except Exception as e:
+        print(f"Error extracting sentences: {e}")
+        return []
+
+def extract_subject_object(sentence):
+    """
+    Extract subject and object from a sentence using dependency parsing.
+    
+    1. Initialize empty strings for subject (subj) and object (obj).
+    2. Track compound and modifier prefixes (e.g., "neural network").
+    3. For each token:
+       - Skip punctuation.
+       - Combine consecutive compounds and modifiers.
+       - When encountering a "subj" dependency, assemble and store the subject.
+       - When encountering an "obj" dependency, assemble and store the object.
+    4. Return both entities as a two-element list [subject, object].
+    
+    This method works well for simple declarative sentences and forms the
+    foundation for building triplet-based extractions such as:
+    (subject, relation, object)
+    
+    Args:
+        sentence (str): A single sentence to analyze
+    
+    Returns:
+        list: A list containing [subject, object] strings
+    """
+    if not nlp:
+        return ["", ""]
+    
+    try:
+        doc = nlp(sentence)
+        subj = ""
+        obj = ""
+        
+        for token in doc:
+            # Skip punctuation
+            if token.pos_ == "PUNCT":
+                continue
+            
+            # Extract subject
+            if token.dep_ == "nsubj" or token.dep_ == "nsubjpass":
+                # Collect all related tokens (compounds, modifiers, the token itself)
+                subj_tokens = [token]
+                for child in token.head.children:
+                    # Only add children that are compounds/modifiers and not the token itself
+                    if child != token and child.dep_ in ["compound", "amod", "det"]:
+                        subj_tokens.append(child)
+                # Sort by position in sentence to maintain word order
+                subj_tokens.sort(key=lambda t: t.i)
+                subj = " ".join([t.text for t in subj_tokens])
+            
+            # Extract object
+            if token.dep_ == "dobj" or token.dep_ == "attr":
+                # Collect all related tokens (compounds, modifiers, the token itself)
+                obj_tokens = [token]
+                for child in token.head.children:
+                    # Only add children that are compounds/modifiers and not the token itself
+                    if child != token and child.dep_ in ["compound", "amod", "det"]:
+                        obj_tokens.append(child)
+                # Sort by position in sentence to maintain word order
+                obj_tokens.sort(key=lambda t: t.i)
+                obj = " ".join([t.text for t in obj_tokens])
+        
+        return [subj, obj]
+    except Exception as e:
+        print(f"Error extracting subject/object: {e}")
+        return ["", ""]
+
+def extract_relation(sentence):
+    """
+    Extract the relation/predicate from a sentence using pattern matching.
+    
+    1. The sentence is parsed into a spaCy Doc object.
+    2. A Matcher is initialized on the model's vocabulary to identify
+       dependency patterns corresponding to the main predicate.
+    3. The pattern used captures:
+       - The main verb (dependency label ROOT)
+       - Optional prepositions (prep)
+       - Optional agents (agent)
+       - Optional adjectives (ADJ)
+       This allows extraction of relations like:
+       "is associated with", "was treated by", "causes", etc.
+    4. The last matching span from the matcher is selected as the relation.
+    5. If no match is found, an empty string is returned.
+    
+    Args:
+        sentence (str): A single sentence to analyze
+    
+    Returns:
+        str: The extracted relation/verb phrase
+    """
+    if not nlp:
+        return ""
+    
+    try:
+        doc = nlp(sentence)
+        matcher = Matcher(nlp.vocab)
+        
+        # Pattern to match main verb (ROOT) and related tokens
+        pattern = [
+            {"dep": "ROOT", "pos": "VERB"},
+            {"dep": {"IN": ["prep", "agent", "acomp"]}, "OP": "*"},
+            {"pos": "ADJ", "OP": "*"}
+        ]
+        
+        matcher.add("RELATION", [pattern])
+        matches = matcher(doc)
+        
+        if matches:
+            # Get the last match
+            match_id, start, end = matches[-1]
+            relation = doc[start:end].text
+            return relation.strip()
+        
+        # Fallback: find the ROOT verb
+        for token in doc:
+            if token.dep_ == "ROOT" and token.pos_ == "VERB":
+                return token.text
+        
+        return ""
+    except Exception as e:
+        print(f"Error extracting relation: {e}")
+        return ""
 
 @app.route('/api/search', methods=['POST'])
 def search():
@@ -431,6 +591,114 @@ def get_dimension_stats():
     except Exception as e:
         return jsonify({'error': f'Failed to compute dimension data: {str(e)}'}), 500
 
+@app.route('/api/knowledge-graph', methods=['POST'])
+def knowledge_graph():
+    """
+    API endpoint to extract knowledge graph (triplets) from a PDF using spaCy.
+    
+    Process:
+    1. Extracts text from a PDF file
+    2. Segments text into individual sentences using spaCy
+    3. Extracts subject, predicate (relation), and object from each sentence
+    4. Returns structured triplets for knowledge graph construction
+    
+    Request JSON:
+    {
+        "filename": "document.pdf"
+    }
+    
+    Response:
+    {
+        "status": "success",
+        "filename": "document.pdf",
+        "total_sentences": 100,
+        "triplets": [
+            {
+                "subject": "subject text",
+                "predicate": "relation text",
+                "object": "object text"
+            },
+            ...
+        ]
+    }
+    """
+    if not nlp:
+        return jsonify({'error': 'spaCy model not initialized. Please download: python -m spacy download en_core_web_sm'}), 500
+    
+    data = request.get_json()
+    pdf_filename = data.get('filename', '')
+    
+    if not pdf_filename:
+        return jsonify({'error': 'Filename is required'}), 400
+    
+    try:
+        # Build full path to PDF
+        pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(pdf_filename))
+        
+        if not os.path.exists(pdf_path):
+            return jsonify({'error': f'PDF file not found: {pdf_filename}'}), 404
+        
+        # Extract full text from PDF without chunking (avoid duplicates from overlapping chunks)
+        try:
+            reader = PdfReader(pdf_path)
+            full_text = ""
+            for page in reader.pages:
+                content = page.extract_text()
+                if content:
+                    full_text += content + "\n"
+        except Exception as e:
+            return jsonify({'error': f'Failed to extract text from PDF: {str(e)}'}), 400
+        
+        if not full_text.strip():
+            return jsonify({'error': 'No text could be extracted from PDF'}), 400
+        
+        # Extract sentences
+        sentences = extract_sentences(full_text)
+        if not sentences:
+            return jsonify({'error': 'No sentences could be extracted from text'}), 400
+        
+        # Extract triplets (subject, predicate, object) from each sentence
+        # Use a set to track unique triplets and avoid duplicates
+        seen_triplets = set()
+        triplets = []
+        
+        for sentence in sentences:
+            if len(sentence.strip()) > 5:  # Skip very short sentences
+                # Extract subject and object
+                subj_obj = extract_subject_object(sentence)
+                subject = subj_obj[0].strip()
+                obj = subj_obj[1].strip()
+                
+                # Extract relation/predicate
+                predicate = extract_relation(sentence).strip()
+                
+                # Only add triplet if all three components are present and not a duplicate
+                if subject and predicate and obj:
+                    # Create a unique key for this triplet to avoid duplicates
+                    triplet_key = (subject.lower(), predicate.lower(), obj.lower())
+                    
+                    if triplet_key not in seen_triplets:
+                        seen_triplets.add(triplet_key)
+                        triplets.append({
+                            "subject": subject,
+                            "predicate": predicate,
+                            "object": obj
+                        })
+        
+        response = {
+            'status': 'success',
+            'filename': pdf_filename,
+            'total_sentences': len(sentences),
+            'triplets_extracted': len(triplets),
+            'triplets': triplets,
+            'message': f'Successfully extracted {len(triplets)} unique triplets from {len(sentences)} sentences'
+        }
+        
+        return jsonify(response), 200
+    
+    except Exception as e:
+        return jsonify({'error': f'Knowledge graph extraction failed: {str(e)}'}), 500
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
 
@@ -521,6 +789,20 @@ if __name__ == '__main__':
    └─ Response: { 'status': 'success', 'query': '...', 'collection': '...', 'results': [...], 'message': '...' }
    │  Each result contains: { 'content': '...', 'source': '...', 'similarity': 0.0 }
 
+5. KNOWLEDGE GRAPH EXTRACTION
+   ┌─ Endpoint: POST /api/knowledge-graph
+   ├─ Description: Extract knowledge graph triplets from a PDF using spaCy NLP
+   ├─ Parameters (JSON):
+   │  └─ filename: Name of the PDF file to process
+   ├─ Process:
+   │  ├─ Extract text from PDF
+   │  ├─ Segment text into sentences using spaCy
+   │  ├─ Extract subject, predicate, and object from each sentence
+   │  ├─ Return structured triplets for knowledge graph construction
+   │  └─ Filter out incomplete triplets
+   ├─ Triplet Format: { "subject": "...", "predicate": "...", "object": "..." }
+   └─ Response: { 'status': 'success', 'filename': '...', 'total_sentences': 0, 'triplets_extracted': 0, 'triplets': [...] }
+
 ================================================================================
                            HELPER FUNCTIONS
 ================================================================================
@@ -536,6 +818,31 @@ get_chunks_from_pdf(pdf_path, chunk_size=600, overlap=100)
   │  ├─ chunk_size: Size of each chunk (default: 600 characters)
   │  └─ overlap: Overlap between chunks (default: 100 characters)
   └─ Returns: List of text chunks
+
+extract_sentences(text)
+  ├─ Description: Extract individual sentences from text using spaCy NLP
+  ├─ Features:
+  │  ├─ Loads English language model 'en_core_web_sm'
+  │  ├─ Provides tokenization, POS tagging, and sentence boundary detection
+  │  └─ Returns clean, non-empty sentence strings
+  └─ Returns: List of sentences
+
+extract_subject_object(sentence)
+  ├─ Description: Extract subject and object entities from a sentence using dependency parsing
+  ├─ Process:
+  │  ├─ Uses dependency labels (nsubj, dobj, attr)
+  │  ├─ Combines compound and modifier tokens
+  │  └─ Handles both active and passive voice
+  └─ Returns: List containing [subject, object]
+
+extract_relation(sentence)
+  ├─ Description: Extract the main relation/predicate from a sentence
+  ├─ Features:
+  │  ├─ Identifies ROOT verb (main predicate)
+  │  ├─ Handles optional prepositions, agents, and adjectives
+  │  ├─ Supports complex relations like "is associated with", "was treated by"
+  │  └─ Uses pattern matching on dependency trees
+  └─ Returns: Relation/verb phrase as string
 
 ================================================================================
                          DATABASE & CONFIGURATION
