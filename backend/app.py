@@ -269,7 +269,7 @@ def search():
                 formatted_results.append({
                     'content': doc,
                     'source': metadata.get('source', 'unknown'),
-                    'page_number': metadata.get('page_number'),
+                    'page_number': int(metadata.get('page_number')) if metadata.get('page_number') is not None else None,
                     'similarity': round(1 - distance, 3)
                 })
         
@@ -796,7 +796,7 @@ if __name__ == '__main__':
    │  ├─ Return top 3 most relevant results
    │  └─ Calculate similarity scores
    └─ Response: { 'status': 'success', 'query': '...', 'collection': '...', 'results': [...], 'message': '...' }
-   │  Each result contains: { 'content': '...', 'source': '...', 'similarity': 0.0 }
+   │  Each result contains: { 'content': '...', 'source': '...', 'page_number': 0, 'similarity': 0.0 }
 
 5. KNOWLEDGE GRAPH EXTRACTION
    ┌─ Endpoint: POST /api/knowledge-graph
