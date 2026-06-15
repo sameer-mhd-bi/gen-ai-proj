@@ -715,17 +715,11 @@ function App() {
                       {[...searchResults]
                         .sort((a, b) => b.similarity - a.similarity)
                         .map((result, index) => {
-                          const rawPage = result.page_number ?? result.pageNumber ?? result.page ?? result.metadata?.page_number ?? result.metadata?.page
-                          const pageNumber = rawPage != null && rawPage !== '' ? Number(rawPage) : null
-
                           return (
                             <div key={index} className="document-list-item">
                               <div className="document-rank">{index + 1}</div>
                               <div className="document-info">
                                 <div className="document-name">{result.source}</div>
-                                <div className="document-page-number">
-                                  {pageNumber != null && pageNumber !== '' ? `Page ${pageNumber}` : 'Page unavailable'}
-                                </div>
                                 <div className={`document-relevance ${result.similarity < 0 ? 'negative' : ''}`}>{(result.similarity * 100).toFixed(1)}%</div>
                               </div>
                             </div>

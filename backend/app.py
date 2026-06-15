@@ -48,11 +48,11 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def get_chunks_from_pdf(pdf_path, chunk_size=600, overlap=100):
-    """Extract and chunk PDF with overlap for better context, tracking page numbers"""
+    """Extract and chunk PDF with overlap for better context, tracking chunk numbers"""
     try:
         reader = PdfReader(pdf_path)
         chunks_with_pages = []
-        char_count = 0
+        chunk_number = 1
 
         for page_num, page in enumerate(reader.pages, 1):
             content = page.extract_text()
@@ -63,8 +63,9 @@ def get_chunks_from_pdf(pdf_path, chunk_size=600, overlap=100):
                     if chunk:
                         chunks_with_pages.append({
                             'content': chunk,
-                            'page_number': page_num
+                            'chunk_number': chunk_number
                         })
+                        chunk_number += 1
 
         if not chunks_with_pages:
             return []
@@ -269,7 +270,7 @@ def search():
                 formatted_results.append({
                     'content': doc,
                     'source': metadata.get('source', 'unknown'),
-                    'page_number': (lambda v: (lambda: int(v))() if v not in (None, '', 'None') else None)(metadata.get('page_number')) if True else None,
+                    'chunk_number': int(metadata['chunk_number']) if metadata.get('chunk_number') not in (None, '', 'None') else None,
                     'similarity': round(1 - distance, 3)
                 })
         
@@ -518,7 +519,7 @@ def vectorize_pdf():
             metadatas=[{
                 "source": pdf_filename,
                 "chunk_id": i,
-                "page_number": int(chunk['page_number'])
+                "chunk_number": int(chunk['chunk_number'])
             } for i, chunk in enumerate(chunks_with_pages)]
         )
         
@@ -555,7 +556,7 @@ def get_collection_chunks(collection_name):
                     'content': doc,
                     'source': metadata.get('source', 'unknown') if metadata else 'unknown',
                     'chunk_id': metadata.get('chunk_id', idx) if metadata else idx,
-                    'page_number': metadata.get('page_number') if metadata else None
+                    'chunk_number': metadata.get('chunk_number') if metadata else None
                 })
         
         return jsonify({
@@ -783,6 +784,7 @@ if __name__ == '__main__':
    │  └─ collection_name (path parameter): Name of the collection
    └─ Response: { 'status': 'success', 'collection': '...', 'chunks': [...], 'total_chunks': 0 }
    │  Each chunk contains: { 'id': 0, 'content': '...', 'source': '...', 'chunk_id': 0 }
+   │  Each chunk also contains: { 'chunk_number': 0 }
 
 4. SEARCH
    ┌─ Endpoint: POST /api/search
@@ -796,7 +798,7 @@ if __name__ == '__main__':
    │  ├─ Return top 3 most relevant results
    │  └─ Calculate similarity scores
    └─ Response: { 'status': 'success', 'query': '...', 'collection': '...', 'results': [...], 'message': '...' }
-   │  Each result contains: { 'content': '...', 'source': '...', 'page_number': 0, 'similarity': 0.0 }
+   │  Each result contains: { 'content': '...', 'source': '...', 'chunk_number': 0, 'similarity': 0.0 }
 
 5. KNOWLEDGE GRAPH EXTRACTION
    ┌─ Endpoint: POST /api/knowledge-graph

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FaHome, FaUser, FaCog, FaChartBar, FaEnvelope, FaFileAlt, FaBars, FaTimes, FaFolder, FaSearch } from 'react-icons/fa';
+import aspireLogo from '../assets/aspire.png';
 import './Sidebar.css';
 
 const Sidebar = ({ collapsed, open, onToggle, activePath, onPathChange }) => {
@@ -31,6 +32,7 @@ const Sidebar = ({ collapsed, open, onToggle, activePath, onPathChange }) => {
       )}
       <div className={`sidebar ${collapsed ? 'collapsed' : ''} ${open ? 'open' : ''}`}>
 
+        <img src={aspireLogo} alt="Aspire" className="sidebar-aspire-logo" />
         <div className="sidebar-logo">Semantic Search</div>
       <nav className="sidebar-nav">
         {navItems.map((item) => (
