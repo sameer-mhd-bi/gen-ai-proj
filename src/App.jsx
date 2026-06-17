@@ -24,9 +24,10 @@ function App() {
   const [isSearching, setIsSearching] = useState(false)
   const [searchError, setSearchError] = useState('')
   const [defaultCollection, setDefaultCollection] = useState(() => {
-    // Initialize from localStorage if it exists
     return localStorage.getItem('selectedCollection') || ''
   })
+  const [chunkSize, setChunkSize] = useState(() => localStorage.getItem('chunkSize') || '600')
+  const [overlap, setOverlap] = useState(() => localStorage.getItem('overlap') || '100')
   const [selectedDocument, setSelectedDocument] = useState(null)
   const [selectedDocuments, setSelectedDocuments] = useState([])
   const [selectedCollections, setSelectedCollections] = useState([])
@@ -41,6 +42,8 @@ function App() {
   const [isExtractingKG, setIsExtractingKG] = useState(false)
   const [selectedPdfForKG, setSelectedPdfForKG] = useState('')
   const searchInputRef = useRef(null)
+  const [nResults, setNResults] = useState(() => localStorage.getItem('nResults') || '3')
+
   const fileInputRef = useRef(null)
   const debounceTimer = useRef(null)
   const knowledgeGraphRef = useRef(null)
@@ -52,6 +55,18 @@ function App() {
       console.log('Saved collection to localStorage:', defaultCollection)
     }
   }, [defaultCollection])
+
+  useEffect(() => {
+    localStorage.setItem('chunkSize', chunkSize)
+  }, [chunkSize])
+
+  useEffect(() => {
+    localStorage.setItem('overlap', overlap)
+  }, [overlap])
+
+  useEffect(() => {
+    localStorage.setItem('nResults', nResults)
+  }, [nResults])
 
   // Debug: Track defaultCollection changes
   useEffect(() => {
@@ -156,9 +171,10 @@ function App() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           query: inputValue,
-          collection: defaultCollection
+          collection: defaultCollection,
+          n_results: parseInt(nResults, 10)
         }),
       })
 
@@ -324,7 +340,9 @@ function App() {
         },
         body: JSON.stringify({
           filename: selectedPdfForVectorization,
-          collection_name: selectedCollection
+          collection_name: selectedCollection,
+          chunk_size: parseInt(chunkSize, 10),
+          overlap: parseInt(overlap, 10)
         }),
       })
 
@@ -1037,6 +1055,69 @@ function App() {
                   triplets={knowledgeGraphTriplets}
                   loading={isExtractingKG}
                 />
+              </div>
+            </div>
+          )}
+          {activePath === '/settings' && (
+            <div className="collections-container">
+              <div className="search-result-panel-top">
+                <div className="search-result-panel-header">Application Settings</div>
+                <div className="settings-form">
+                  <div className="form-group">
+                    <label htmlFor="chunkSize">Chunk Size (characters):</label>
+                    <input
+                      id="chunkSize"
+                      type="number"
+                      value={chunkSize}
+                      onChange={(e) => setChunkSize(e.target.value)}
+                      placeholder="e.g., 600"
+                      className="form-input"
+                      min="1"
+                    />
+                    <p className="setting-description">
+                      The maximum number of characters per chunk when vectorizing PDFs.
+                    </p>
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="overlap">Overlap (characters):</label>
+                    <input
+                      id="overlap"
+                      type="number"
+                      value={overlap}
+                      onChange={(e) => setOverlap(e.target.value)}
+                      placeholder="e.g., 100"
+                      className="form-input"
+                      min="0"
+                    />
+                    <p className="setting-description">
+                      The number of overlapping characters between consecutive chunks.
+                    </p>
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="nResults">Number of Search Results:</label>
+                    <input
+                      id="nResults"
+                      type="number"
+                      value={nResults}
+                      onChange={(e) => setNResults(e.target.value)}
+                      placeholder="e.g., 3"
+                      className="form-input"
+                      min="1"
+                    />
+                    <p className="setting-description">
+                      The maximum number of search results to retrieve from the vector database.
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => alert('Settings saved!')} // Local storage is updated automatically via useEffect
+                    className="upload-button"
+                  >
+                    Save Settings
+                  </button>
+                </div>
               </div>
             </div>
           )}

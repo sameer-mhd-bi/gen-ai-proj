@@ -25,6 +25,10 @@ DB_FOLDER = os.path.join(os.path.dirname(__file__), 'knowledge_db')
 ALLOWED_EXTENSIONS = {'pdf'}
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB
 
+DEFAULT_CHUNK_SIZE = 600
+DEFAULT_OVERLAP = 100
+DEFAULT_N_RESULTS = 3
+
 # Create folders if they don't exist
 Path(UPLOAD_FOLDER).mkdir(parents=True, exist_ok=True)
 Path(DB_FOLDER).mkdir(parents=True, exist_ok=True)
@@ -47,7 +51,7 @@ def allowed_file(filename):
     """Check if file has allowed extension"""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-def get_chunks_from_pdf(pdf_path, chunk_size=600, overlap=100):
+def get_chunks_from_pdf(pdf_path, chunk_size=DEFAULT_CHUNK_SIZE, overlap=DEFAULT_OVERLAP):
     """Extract and chunk PDF with overlap for better context, tracking chunk numbers"""
     try:
         reader = PdfReader(pdf_path)
@@ -234,6 +238,14 @@ def search():
     data = request.get_json()
     query = data.get('query', '')
     collection_name = data.get('collection', 'default')
+    n_results_param = data.get('n_results', DEFAULT_N_RESULTS) # Default if not provided
+    
+    try:
+        n_results = int(n_results_param)
+        if n_results <= 0:
+            raise ValueError("n_results must be a positive integer.")
+    except (ValueError, TypeError):
+        return jsonify({'error': 'n_results must be a positive integer'}), 400
     
     if not query:
         return jsonify({'error': 'Query is required'}), 400
@@ -254,8 +266,8 @@ def search():
         # Search in the collection
         query_vector = model.encode(query).tolist()
         results = collection.query(
-            query_embeddings=[query_vector],
-            n_results=3,
+            query_embeddings=[query_vector], # type: ignore
+            n_results=n_results,
             include=['documents', 'metadatas', 'distances']
         )
         
@@ -488,10 +500,28 @@ def vectorize_pdf():
     data = request.get_json()
     pdf_filename = data.get('filename', '')
     collection_name = data.get('collection_name', '')
+    chunk_size_param = data.get('chunk_size', DEFAULT_CHUNK_SIZE) # Default if not provided
+    overlap_param = data.get('overlap', DEFAULT_OVERLAP)         # Default if not provided
     
     if not pdf_filename or not collection_name:
         return jsonify({'error': 'Filename and collection_name are required'}), 400
     
+    try:
+        chunk_size = int(chunk_size_param)
+        if chunk_size <= 0:
+            raise ValueError("chunk_size must be a positive integer.")
+    except (ValueError, TypeError):
+        return jsonify({'error': 'chunk_size must be a positive integer'}), 400
+
+    try:
+        overlap = int(overlap_param)
+        if overlap < 0: # Overlap can be 0, but not negative
+            raise ValueError("overlap must be a non-negative integer.")
+        if overlap >= chunk_size:
+            return jsonify({'error': 'overlap must be less than chunk_size'}), 400
+    except (ValueError, TypeError):
+        return jsonify({'error': 'overlap must be a non-negative integer'}), 400
+
     try:
         # Build full path to PDF
         pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(pdf_filename))
@@ -500,7 +530,7 @@ def vectorize_pdf():
             return jsonify({'error': f'PDF file not found: {pdf_filename}'}), 404
         
         # Get chunks from PDF
-        chunks_with_pages = get_chunks_from_pdf(pdf_path)
+        chunks_with_pages = get_chunks_from_pdf(pdf_path, chunk_size=chunk_size, overlap=overlap)
         if not chunks_with_pages:
             return jsonify({'error': 'No text could be extracted from PDF'}), 400
         

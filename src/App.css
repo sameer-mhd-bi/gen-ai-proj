@@ -1105,3 +1105,9 @@
 .document-partition {
   box-sizing: border-box;
 }
+
+.setting-description {
+  font-size: 12px; /* Two levels down from a typical 14px text size */
+  color: var(--text-muted);
+  margin-top: 4px;
+}
