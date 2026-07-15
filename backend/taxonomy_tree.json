@@ -1,0 +1,66 @@
+{
+    "Property Insurance": {
+        "Commercial Property": {
+            "Building Property Coverage": {
+                "Windstorm Damage": [
+                    "Roof Structure Failure",
+                    "Broken Window Panes"
+                ],
+                "Water Damage": [
+                    "Internal Pipe Burst",
+                    "External Flood Ingress"
+                ]
+            },
+            "Business Personal Property": {
+                "Water Damage Contents": [
+                    "Inventory Stock Spoilage",
+                    "Machinery Short-Circuit"
+                ],
+                "Fire Damage": [
+                    "Smoke Discoloration",
+                    "Total Equipment Loss"
+                ]
+            }
+        }
+    },
+    "Casualty Insurance": {
+        "Auto Liability": {
+            "Bodily Injury Liability": {
+                "Third Party Rear-End": [
+                    "Cervical Whiplash",
+                    "Soft Tissue Strain"
+                ],
+                "Intersection Collision": [
+                    "Upper Extremity Fractures",
+                    "Concussion Trauma"
+                ]
+            }
+        },
+        "Workers Compensation": {
+            "Medical Only Benefits": {
+                "Occupational Slip and Fall": [
+                    "Ankle Fracture",
+                    "Wrist Sprain"
+                ],
+                "Repetitive Motion Strain": [
+                    "Carpal Tunnel Syndrome",
+                    "Tendonitis Flareup"
+                ]
+            },
+            "Indemnity / Lost Wages": {
+                "Industrial Machinery Accident": [
+                    "Amputation Rehabilitation",
+                    "Severe Laceration Recovery"
+                ]
+            }
+        },
+        "General Liability": {
+            "Bodily Injury Coverage": {
+                "Slip Trip or Fall Incident": [
+                    "Upper Extremity Fractures",
+                    "Soft Tissue Injury"
+                ]
+            }
+        }
+    }
+}

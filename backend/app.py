@@ -8,6 +8,12 @@ from sentence_transformers import SentenceTransformer
 from pypdf import PdfReader
 import spacy
 from spacy.matcher import Matcher
+from transformers import pipeline
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import io
+import base64
 
 app = Flask(__name__)
 # Enable CORS with specific configuration
@@ -46,6 +52,68 @@ try:
 except OSError:
     print("spaCy model 'en_core_web_sm' not found. Please run: python -m spacy download en_core_web_sm")
     nlp = None
+
+# Initialize Zero-Shot Classification Pipeline
+try:
+    classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
+except Exception as e:
+    print(f"Error loading transformers pipeline: {e}")
+    classifier = None
+
+# Taxonomy Tree for Classification
+import json
+import os
+
+TAXONOMY_FILE_PATH = os.path.join(os.path.dirname(__file__), 'taxonomy_tree.json')
+
+def load_taxonomy_tree():
+    if not os.path.exists(TAXONOMY_FILE_PATH):
+        default_tree = {
+            "Property Insurance": {
+                "Commercial Property": {
+                    "Building Property Coverage": {
+                        "Windstorm Damage": ["Roof Structure Failure", "Broken Window Panes"],
+                        "Water Damage": ["Internal Pipe Burst", "External Flood Ingress"]
+                    },
+                    "Business Personal Property": {
+                        "Water Damage Contents": ["Inventory Stock Spoilage", "Machinery Short-Circuit"],
+                        "Fire Damage": ["Smoke Discoloration", "Total Equipment Loss"]
+                    }
+                }
+            },
+            "Casualty Insurance": {
+                "Auto Liability": {
+                    "Bodily Injury Liability": {
+                        "Third Party Rear-End": ["Cervical Whiplash", "Soft Tissue Strain"],
+                        "Intersection Collision": ["Upper Extremity Fractures", "Concussion Trauma"]
+                    }
+                },
+                "Workers Compensation": {
+                    "Medical Only Benefits": {
+                        "Occupational Slip and Fall": ["Ankle Fracture", "Wrist Sprain"],
+                        "Repetitive Motion Strain": ["Carpal Tunnel Syndrome", "Tendonitis Flareup"]
+                    },
+                    "Indemnity / Lost Wages": {
+                        "Industrial Machinery Accident": ["Amputation Rehabilitation", "Severe Laceration Recovery"]
+                    }
+                },
+                "General Liability": {
+                    "Bodily Injury Coverage": {
+                        "Slip Trip or Fall Incident": ["Upper Extremity Fractures", "Soft Tissue Injury"]
+                    }
+                }
+            }
+        }
+        with open(TAXONOMY_FILE_PATH, 'w', encoding='utf-8') as f:
+            json.dump(default_tree, f, indent=4)
+        return default_tree
+    
+    with open(TAXONOMY_FILE_PATH, 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+taxonomy_tree = load_taxonomy_tree()
+CONFIDENCE_THRESHOLD = 0.20
+
 
 def allowed_file(filename):
     """Check if file has allowed extension"""
@@ -738,6 +806,158 @@ def knowledge_graph():
     
     except Exception as e:
         return jsonify({'error': f'Knowledge graph extraction failed: {str(e)}'}), 500
+
+def plot_claim_hierarchy_base64(claim_num, text, path_labels, path_scores, final_score):
+    plt.figure(figsize=(10, 5))
+    x_positions = [0, 1, 2, 3, 4, 5]
+    y_position = 0
+    nodes = ["Insurance Root"] + path_labels
+    scores_pct = [100.0] + [s * 100 for s in path_scores]
+
+    for i in range(len(x_positions) - 1):
+        plt.plot([x_positions[i], x_positions[i+1]], [y_position, y_position],
+                 color='#bdc3c7', linestyle='-', linewidth=2, zorder=1)
+
+    for i, (node_name, score) in enumerate(zip(nodes, scores_pct)):
+        if i == 0:
+            node_color = '#2c3e50'
+        elif score >= 70.0:
+            node_color = '#27ae60'
+        elif score >= 40.0:
+            node_color = '#f39c12'
+        else:
+            node_color = '#c0392b'
+
+        plt.scatter(x_positions[i], y_position, color=node_color, s=400, zorder=2)
+        label_text = f"{node_name}\n({score:.1f}%)" if i > 0 else node_name
+        plt.text(x_positions[i], y_position + 0.15, label_text,
+                 ha='center', va='bottom', fontsize=9, fontweight='bold',
+                 bbox=dict(facecolor='white', alpha=0.8, boxstyle='round,pad=0.3', edgecolor='#e2e8f0'))
+
+    plt.title(f"Visual Taxonomy Path\nOverall Path Integrity: {final_score:.1f}%",
+              fontsize=12, fontweight='bold', pad=20)
+    plt.xlim(-0.5, 5.5)
+    plt.ylim(-0.5, 0.8)
+    plt.axis('off')
+    plt.tight_layout()
+
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', dpi=150)
+    plt.close()
+    buf.seek(0)
+    img_base64 = base64.b64encode(buf.getvalue()).decode('utf-8')
+    return img_base64
+
+
+@app.route('/api/taxonomy-tree', methods=['GET'])
+def get_taxonomy_tree():
+    global taxonomy_tree
+    return jsonify(taxonomy_tree), 200
+
+@app.route('/api/taxonomy-tree', methods=['POST'])
+def update_taxonomy_tree():
+    global taxonomy_tree
+    try:
+        new_tree = request.get_json()
+        if not new_tree or not isinstance(new_tree, dict):
+            return jsonify({'error': 'Invalid taxonomy tree payload. Must be a JSON object.'}), 400
+            
+        with open(TAXONOMY_FILE_PATH, 'w', encoding='utf-8') as f:
+            json.dump(new_tree, f, indent=4)
+            
+        taxonomy_tree = new_tree
+        return jsonify({'status': 'success', 'message': 'Taxonomy tree updated successfully'}), 200
+    except Exception as e:
+        return jsonify({'error': f'Failed to update taxonomy tree: {str(e)}'}), 500
+
+@app.route('/api/taxonomy-classify', methods=['POST'])
+def taxonomy_classify():
+    if not classifier:
+        return jsonify({'error': 'Transformers classifier not loaded.'}), 500
+
+    data = request.get_json()
+    text = data.get('query', '')
+    if not text:
+        return jsonify({'error': 'Query text is required'}), 400
+
+    try:
+        plot_labels = []
+        plot_scores = []
+        joint_probability = 1.0
+        path_nodes = []
+
+        # Level 1
+        l1_candidates = list(taxonomy_tree.keys())
+        res_l1 = classifier(text, candidate_labels=l1_candidates)
+        top_l1, score_l1 = res_l1['labels'][0], res_l1['scores'][0]
+        joint_probability *= score_l1
+        path_nodes.append(f"[L1 Line of Biz]: {top_l1} ({score_l1:.1%})")
+        plot_labels.append(top_l1)
+        plot_scores.append(score_l1)
+
+        # Level 2
+        l2_candidates = list(taxonomy_tree[top_l1].keys())
+        res_l2 = classifier(text, candidate_labels=l2_candidates)
+        top_l2, score_l2 = res_l2['labels'][0], res_l2['scores'][0]
+        joint_probability *= score_l2
+        path_nodes.append(f"[L2 Product]: {top_l2} ({score_l2:.1%})")
+        plot_labels.append(top_l2)
+        plot_scores.append(score_l2)
+
+        # Level 3
+        l3_candidates = list(taxonomy_tree[top_l1][top_l2].keys())
+        res_l3 = classifier(text, candidate_labels=l3_candidates)
+        top_l3, score_l3 = res_l3['labels'][0], res_l3['scores'][0]
+        joint_probability *= score_l3
+        path_nodes.append(f"[L3 Coverage]: {top_l3} ({score_l3:.1%})")
+        plot_labels.append(top_l3)
+        plot_scores.append(score_l3)
+
+        # Level 4
+        l4_candidates = list(taxonomy_tree[top_l1][top_l2][top_l3].keys())
+        res_l4 = classifier(text, candidate_labels=l4_candidates)
+        top_l4, score_l4 = res_l4['labels'][0], res_l4['scores'][0]
+
+        if score_l4 < CONFIDENCE_THRESHOLD:
+            alt_l3_candidates = [c for c in l3_candidates if c != top_l3]
+            if alt_l3_candidates:
+                top_l3 = alt_l3_candidates[0]
+                l4_candidates = list(taxonomy_tree[top_l1][top_l2][top_l3].keys())
+                res_l4 = classifier(text, candidate_labels=l4_candidates)
+                top_l4, score_l4 = res_l4['labels'][0], res_l4['scores'][0]
+
+                joint_probability = score_l1 * score_l2 * score_l3
+                path_nodes[2] = f"[L3 Coverage (Backtracked)]: {top_l3} ({score_l3:.1%})"
+                plot_labels[2] = f"{top_l3}\n(Backtracked)"
+
+        joint_probability *= score_l4
+        path_nodes.append(f"[L4 Peril]: {top_l4} ({score_l4:.1%})")
+        plot_labels.append(top_l4)
+        plot_scores.append(score_l4)
+
+        # Level 5
+        l5_candidates = taxonomy_tree[top_l1][top_l2][top_l3][top_l4]
+        res_l5 = classifier(text, candidate_labels=l5_candidates)
+        top_l5, score_l5 = res_l5['labels'][0], res_l5['scores'][0]
+        joint_probability *= score_l5
+        path_nodes.append(f"[L5 Cause]: 🛑 {top_l5} ({score_l5:.1%})")
+        plot_labels.append(top_l5)
+        plot_scores.append(score_l5)
+
+        overall_percentage = joint_probability * 100
+        
+        img_base64 = plot_claim_hierarchy_base64(1, text, plot_labels, plot_scores, overall_percentage)
+
+        return jsonify({
+            'status': 'success',
+            'path_nodes': path_nodes,
+            'overall_score': overall_percentage,
+            'image_base64': img_base64,
+            'plot_labels': plot_labels,
+            'plot_scores': plot_scores
+        })
+    except Exception as e:
+        return jsonify({'error': f'Classification failed: {str(e)}'}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

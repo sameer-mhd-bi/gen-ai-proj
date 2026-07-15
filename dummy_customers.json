@@ -1,0 +1,47 @@
+[
+    {
+        "customer_id": "CUST_001",
+        "full_name": "James Sterling",
+        "email": "j.sterling@mailnet.com",
+        "phone": "+91 98765 43210",
+        "address": "42, Green Glen Layout, Bellandur, Bengaluru",
+        "device_id": "DEV_A98X77",
+        "bank_account": "ACC_991823"
+    },
+    {
+        "customer_id": "CUST_002",
+        "full_name": "Anita Rao",
+        "email": "anita.r.1990@webmail.in",
+        "phone": "+91 91234 56789",
+        "address": "15, Park Street, Sector 2, Salt Lake, Kolkata",
+        "device_id": "DEV_B44Z11",
+        "bank_account": "ACC_445122"
+    },
+    {
+        "customer_id": "CUST_003",
+        "full_name": "Jamie Sterling",
+        "email": "admin@opssecure.net",
+        "phone": "+91 98765 43211",
+        "address": "42, Green Glen Layout, Bellandur, Bengaluru",
+        "device_id": "DEV_A98X77",
+        "bank_account": "ACC_991823"
+    },
+    {
+        "customer_id": "CUST_004",
+        "full_name": "Vikram Malhotra",
+        "email": "v.malhotra@mailnet.com",
+        "phone": "+91 88888 77777",
+        "address": "78, Phase 3, Hitech City, Hyderabad",
+        "device_id": "DEV_C55M99",
+        "bank_account": "ACC_112233"
+    },
+    {
+        "customer_id": "CUST_005",
+        "full_name": "Siddharth Shah",
+        "email": "admin@opssecure.net",
+        "phone": "+91 77777 66666",
+        "address": "Suite 401, Tech Park Towers, Whitefield, Bengaluru",
+        "device_id": "DEV_A98X77",
+        "bank_account": "ACC_556677"
+    }
+]

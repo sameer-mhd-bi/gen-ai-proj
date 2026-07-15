@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaHome, FaUser, FaCog, FaChartBar, FaEnvelope, FaFileAlt, FaBars, FaTimes, FaFolder, FaSearch } from 'react-icons/fa';
+import { FaHome, FaUser, FaCog, FaChartBar, FaEnvelope, FaFileAlt, FaBars, FaTimes, FaFolder, FaSearch, FaProjectDiagram } from 'react-icons/fa';
 import aspireLogo from '../assets/aspire.png';
 import './Sidebar.css';
 
@@ -9,6 +9,7 @@ const Sidebar = ({ collapsed, open, onToggle, activePath, onPathChange }) => {
     { path: '/collections', label: 'Collections', icon: <FaFolder /> },
     { path: '/documents', label: 'Documents', icon: <FaFileAlt /> },
     { path: '/knowledge-graph', label: 'Knowledge Graph', icon: <FaChartBar /> },
+    { path: '/taxonomy', label: 'Taxonomy', icon: <FaProjectDiagram /> },
     { path: '/settings', label: 'Settings', icon: <FaCog /> },
   ];
 

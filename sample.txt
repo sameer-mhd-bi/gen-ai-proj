@@ -1,0 +1,71 @@
+Sample 1 (Tests Property Damage):
+
+High winds during the storm yesterday blew several shingles off the roof, causing severe structural failure and broken window panes in our main warehouse.
+
+Sample 2 (Tests Workers Compensation):
+
+While crossing the factory floor, an employee slipped on a wet surface and fell, resulting in a fractured ankle and a severely sprained wrist.
+
+Sample 3 (Tests Auto Liability - Rear-End):
+
+Our delivery truck failed to brake in time at the stoplight and hit the sedan in front of it. The driver of the sedan is claiming a severe cervical whiplash and soft tissue strain in their neck.
+
+Sample 4 (Tests Auto Liability - Intersection):
+
+A driver ran a red light at the intersection and collided with our insured's vehicle. The passenger sustained upper extremity fractures and a severe concussion trauma from the impact.
+
+Sample 5 (Tests General Liability - Slip and Fall):
+
+A customer was walking through the grocery aisle, slipped on an unmarked puddle of spilled liquid, and suffered upper extremity fractures along with a soft tissue injury to their shoulder.
+
+Sample 6 (Tests Commercial Property - Water Damage):
+
+During the freezing temperatures last night, an internal pipe burst on the second floor. The external flood ingress ruined the carpeting and drywall on the entire first level.
+
+Sample 7 (Tests Business Personal Property - Fire Damage):
+
+An electrical fire broke out in the server room, resulting in total equipment loss of our main servers and severe smoke discoloration to the surrounding inventory.
+
+Sample 8 (Tests Workers Compensation - Indemnity / Machinery):
+
+The factory worker's hand got caught in the conveyor belt gears, resulting in an industrial machinery accident that required amputation rehabilitation and severe laceration recovery.
+
+Sample 9 (Tests Workers Comp Medical Only):
+
+Our warehouse employee tripped over a pallet jack left in the aisle. The fall caused a fractured ankle and a torn ACL. Medical treatment is focused solely on the physical injury, with no lost wages claimed.
+
+Sample 10 (Tests Commercial Auto Property Damage):
+
+A driver in our fleet swerved to avoid an animal and scraped the side of a parked SUV. There were no injuries, but the third-party vehicle sustained significant rear bumper crushing and structural panel damage.
+
+Sample 11 (Tests General Liability - Medical Only):
+
+A patron was exiting the building after hours when they slipped on the icy sidewalk and broke their arm. The resulting medical expenses are high, but it is a straightforward physical injury claim, not an auto incident.
+
+Sample 12 (Tests Commercial Property - Inventory Damage):
+
+Heavy rain caused external flood ingress through a foundation crack. The water ruined the inventory stock of shoes and electronic goods stored on the ground floor, but no structural damage to the building itself occurred.
+
+Sample 13 (Tests Auto Liability - Bodily Injury):
+
+A collision between two cars resulted in one driver suffering whiplash. The impact was severe enough to cause a concussion trauma to the passenger in the same vehicle.
+
+Sample 14 (Tests Property Insurance - Equipment Breakdown):
+
+The HVAC unit on the roof suffered mechanical failure due to an internal short-circuit. This caused significant inventory spoilage in the walk-in freezer below.
+
+Sample 15 (Tests Workers Compensation - Slip & Fall):
+
+An office worker slipped on a wet spot near the breakroom coffee machine. They sustained a wrist sprain but are expected to return to work next week, so only medical benefits apply.
+
+Sample 16 (Casualty - Workers Compensation - Injury): 
+
+An employee slipped on an oily surface in the warehouse, fracturing their arm.
+
+Sample 17 (Casualty - General Liability - Medical Payments): 
+
+A customer was walking through the store and fell on a wet spot, sustaining a fractured wrist.
+
+Sample 18 (Property - Commercial Auto Property Damage): 
+
+My delivery van hit a parked car while trying to parallel park.

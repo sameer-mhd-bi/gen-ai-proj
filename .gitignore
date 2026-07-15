@@ -25,3 +25,4 @@ dist-ssr
 /backend/.venv
 /backend/src_doc_files
 /backend/knowledge_db
+*.pdf

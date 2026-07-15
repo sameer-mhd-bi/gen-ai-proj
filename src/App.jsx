@@ -5,6 +5,7 @@ import KnowledgeGraph from './components/KnowledgeGraph'
 import { FaBars, FaSearch, FaTimes, FaTrash } from 'react-icons/fa'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import DimensionChart from './components/DimensionChart'
+import TaxonomyView from './components/TaxonomyView'
 
 function App() {
   const [searchQuery, setSearchQuery] = useState('')
@@ -43,7 +44,9 @@ function App() {
   const [selectedPdfForKG, setSelectedPdfForKG] = useState('')
   const searchInputRef = useRef(null)
   const [nResults, setNResults] = useState(() => localStorage.getItem('nResults') || '3')
-
+  const [taxonomyConfig, setTaxonomyConfig] = useState('{}')
+  const [isSavingTaxonomy, setIsSavingTaxonomy] = useState(false)
+  
   const fileInputRef = useRef(null)
   const debounceTimer = useRef(null)
   const knowledgeGraphRef = useRef(null)
@@ -85,7 +88,39 @@ function App() {
     // Fetch documents on mount
     fetchDocuments()
     fetchCollections()
+    fetchTaxonomyConfig()
   }, [])
+  
+  const fetchTaxonomyConfig = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/taxonomy-tree')
+      if (response.ok) {
+        const data = await response.json()
+        setTaxonomyConfig(JSON.stringify(data, null, 2))
+      }
+    } catch (error) {
+      console.error('Error fetching taxonomy config:', error)
+    }
+  }
+
+  const handleSaveTaxonomy = async () => {
+    setIsSavingTaxonomy(true)
+    try {
+      const parsedConfig = JSON.parse(taxonomyConfig) // validate JSON first
+      const response = await fetch('http://localhost:5000/api/taxonomy-tree', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(parsedConfig)
+      })
+      
+      if (!response.ok) throw new Error('Failed to save taxonomy')
+      alert('Taxonomy tree saved successfully!')
+    } catch (error) {
+      alert(`Error saving taxonomy: ${error.message}. Please ensure the JSON is valid.`)
+    } finally {
+      setIsSavingTaxonomy(false)
+    }
+  }
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -1058,6 +1093,11 @@ function App() {
               </div>
             </div>
           )}
+          {activePath === '/taxonomy' && (
+            <div className="collections-container">
+              <TaxonomyView />
+            </div>
+          )}
           {activePath === '/settings' && (
             <div className="collections-container">
               <div className="search-result-panel-top">
@@ -1116,6 +1156,34 @@ function App() {
                     className="upload-button"
                   >
                     Save Settings
+                  </button>
+                </div>
+              </div>
+              
+              <div className="search-result-panel-top" style={{ marginTop: '20px' }}>
+                <div className="search-result-panel-header">Taxonomy Configuration</div>
+                <div className="settings-form">
+                  <div className="form-group">
+                    <label htmlFor="taxonomyTree">Taxonomy Tree (JSON format):</label>
+                    <textarea
+                      id="taxonomyTree"
+                      value={taxonomyConfig}
+                      onChange={(e) => setTaxonomyConfig(e.target.value)}
+                      className="form-input"
+                      style={{ height: '300px', fontFamily: 'monospace', whiteSpace: 'pre', fontSize: '13px' }}
+                      spellCheck="false"
+                    />
+                    <p className="setting-description">
+                      Define the hierarchical structure of the Insurance Taxonomy. Must be valid JSON.
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={handleSaveTaxonomy}
+                    className="upload-button"
+                    disabled={isSavingTaxonomy}
+                  >
+                    {isSavingTaxonomy ? 'Saving...' : 'Save Taxonomy'}
                   </button>
                 </div>
               </div>
