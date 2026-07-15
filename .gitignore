@@ -26,3 +26,4 @@ dist-ssr
 /backend/src_doc_files
 /backend/knowledge_db
 *.pdf
+backend/.env

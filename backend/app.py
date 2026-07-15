@@ -14,6 +14,35 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import io
 import base64
+import random
+from openai import OpenAI
+from pydantic import BaseModel, Field
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
+try:
+    openai_client = OpenAI()
+except Exception as e:
+    print(f"Warning: OpenAI client initialization failed: {e}")
+    openai_client = None
+
+class WorkflowExtraction(BaseModel):
+    claim_id: str = Field(description="The claim ID extracted or generated")
+    policy: str = Field(description="The policy number")
+    customer_name: str = Field(description="The customer's name")
+    peril: str = Field(description="The peril (e.g. Windstorm)")
+    damage_type: str = Field(description="The damage type")
+    structure: str = Field(description="The structure damaged")
+    estimated_loss: str = Field(description="The estimated loss as a string")
+    highlighted_text: str = Field(description="The original text but with key entities wrapped in <b> tags")
+    fraud_probability: str = Field(description="Fraud probability percentage, e.g. '4%'")
+    coverage_confidence: str = Field(description="Coverage confidence percentage, e.g. '93%'")
+    historical_matches: str = Field(description="Number of historical matches, e.g. '184'")
+    semantic_similarity: str = Field(description="Semantic similarity percentage, e.g. '97%'")
+    recommendation: str = Field(description="One of: 'Approve', 'Manual Review', 'Reject'")
+    reasoning: str = Field(description="A short reasoning paragraph")
 
 app = Flask(__name__)
 # Enable CORS with specific configuration
@@ -43,8 +72,14 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
 
 # Initialize ChromaDB and SentenceTransformer
-client = chromadb.PersistentClient(path=DB_FOLDER)
-model = SentenceTransformer('all-MiniLM-L6-v2')
+# client = chromadb.PersistentClient(path=DB_FOLDER)
+client = None
+try:
+    print("Loading SentenceTransformer model ('all-MiniLM-L6-v2') for semantic search...")
+    model = SentenceTransformer('all-MiniLM-L6-v2')
+except Exception as e:
+    print(f"Warning: Failed to load SentenceTransformer: {e}")
+    model = None
 
 # Initialize spaCy NLP model for knowledge graph extraction
 try:
@@ -959,8 +994,6 @@ def taxonomy_classify():
     except Exception as e:
         return jsonify({'error': f'Classification failed: {str(e)}'}), 500
 
-if __name__ == '__main__':
-    app.run(debug=True, port=5000)
 
 
 """
@@ -1122,3 +1155,207 @@ Embedding Model: sentence-transformers/all-MiniLM-L6-v2
 
 ================================================================================
 """
+
+@app.route('/api/workflow/analyze', methods=['POST'])
+def analyze_workflow():
+    data = request.get_json()
+    claim_text = data.get('text', '')
+    
+    if not claim_text:
+        return jsonify({'error': 'Claim text is required'}), 400
+        
+    try:
+        if not openai_client:
+            return jsonify({'error': 'OpenAI client not configured. Please set OPENAI_API_KEY environment variable.'}), 500
+            
+        # 1. Extract and analyze via OpenAI
+        completion = openai_client.beta.chat.completions.parse(
+            model="gpt-4o-mini",
+            messages=[
+                {
+                    "role": "system", 
+                    "content": (
+                        "You are an insurance claim analyzer AI. Extract the requested fields from the claim description and evaluate risk and coverage.\n"
+                        "For factual metadata fields (customer_name, policy), if they are not explicitly mentioned in the description, set them to 'Unknown' (do not invent names or policy numbers).\n"
+                        "For peril, damage_type, structure, and estimated_loss, infer them from the claim details if possible, otherwise set them to 'Unknown'.\n"
+                        "For analytical fields (fraud_probability, coverage_confidence, recommendation, reasoning), perform a risk and coverage evaluation based on the claim text (do not set them to 'Unknown').\n"
+                        "Highlight key entities in the text with <b> tags ONLY in the highlighted_text field. Do NOT include <b> or </b> tags in any other extracted fields."
+                    )
+                },
+                {"role": "user", "content": f"Claim description:\n{claim_text}"}
+            ],
+            response_format=WorkflowExtraction,
+        )
+        
+        extracted_data = json.loads(completion.choices[0].message.content)
+        
+        # Clean HTML helper to prevent <b> tags leakage in extracted fields
+        def clean_html(val):
+            if isinstance(val, str):
+                return val.replace("<b>", "").replace("</b>", "").replace("<strong>", "").replace("</strong>", "")
+            return val
+
+        extracted_policy = clean_html(extracted_data.get("policy", "Unknown"))
+        extracted_claim_id = clean_html(extracted_data.get("claim_id", "Unknown"))
+        extracted_customer = clean_html(extracted_data.get("customer_name", "Unknown"))
+
+        # Fetch all policies for this customer to display in the knowledge graph
+        customer_policies = []
+        if extracted_customer != "Unknown":
+            try:
+                import psycopg2
+                conn = psycopg2.connect(dbname="insurance_db", user="postgres", password="root", host="localhost", port="5432")
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT p.policy_number, p.policy_type
+                    FROM policies p
+                    JOIN customers c ON p.customer_id = c.id
+                    WHERE LOWER(TRIM(c.full_name)) = LOWER(TRIM(%s));
+                """, (extracted_customer,))
+                rows = cursor.fetchall()
+                for row in rows:
+                    customer_policies.append({
+                        "policy_number": row[0],
+                        "policy_type": row[1]
+                    })
+                cursor.close()
+                conn.close()
+            except Exception as e:
+                print(f"Error fetching customer policies: {e}")
+
+        # Database Validation for Policy if user provided it
+        if extracted_policy != "Unknown":
+            try:
+                import psycopg2
+                conn = psycopg2.connect(dbname="insurance_db", user="postgres", password="root", host="localhost", port="5432")
+                cursor = conn.cursor()
+                
+                cursor.execute("SELECT 1 FROM policies WHERE TRIM(policy_number) = %s;", (extracted_policy.strip(),))
+                if not cursor.fetchone():
+                    cursor.close()
+                    conn.close()
+                    return jsonify({'error': f"Policy '{extracted_policy}' was not found in the database."}), 400
+                        
+                cursor.close()
+                conn.close()
+            except Exception as e:
+                print(f"Database validation exception: {e}")
+
+        # 2. Taxonomy Classification
+        def flatten_tree(tree, current_path=""):
+            labels = []
+            for k, v in tree.items():
+                path = f"{current_path} > {k}" if current_path else k
+                labels.append(path)
+                if isinstance(v, dict):
+                    labels.extend(flatten_tree(v, path))
+                elif isinstance(v, list):
+                    for item in v:
+                        labels.append(f"{path} > {item}")
+            return labels
+            
+        candidate_labels = flatten_tree(taxonomy_tree)
+        taxonomy_path = "Insurance"
+        
+        if classifier:
+            classification = classifier(claim_text, candidate_labels, multi_label=True)
+            if classification['scores'][0] >= 0.05:
+                best_match = classification['labels'][0]
+                score_percentage = round(classification['scores'][0] * 100, 1)
+                parts = best_match.split(" > ")
+                taxonomy_html = "Insurance<br/>"
+                indent = ""
+                for part in parts:
+                    taxonomy_html += f"{indent}└── {part}<br/>"
+                    indent += "&nbsp;&nbsp;&nbsp;&nbsp;"
+                taxonomy_html += f"<span style='color: #64748b; font-weight: 600;'>(Confidence: {score_percentage}%)</span>"
+                taxonomy_path = taxonomy_html
+        
+        # 3. Vector Similarity Search for Similar Claims
+        similar_claims = []
+        if model:
+            try:
+                import psycopg2
+                query_embedding = model.encode(claim_text).tolist()
+                conn = psycopg2.connect(dbname="insurance_db", user="postgres", password="root", host="localhost", port="5432")
+                cursor = conn.cursor()
+                
+                # Cosine similarity calculated directly in PostgreSQL using unnest and SQL array dot product
+                cursor.execute("""
+                    SELECT c.claim_id, c.description, c.peril, c.damage_type, c.estimated_loss, c.status, c.recommendation,
+                        (
+                            SELECT sum(a * b)
+                            FROM unnest(c.embedding::double precision[]) WITH ORDINALITY AS x(a, i)
+                            JOIN unnest(%s::double precision[]) WITH ORDINALITY AS y(b, j) ON x.i = y.j
+                        ) / (
+                            SQRT((SELECT sum(a * a) FROM unnest(c.embedding::double precision[]) AS a)) * 
+                            SQRT((SELECT sum(b * b) FROM unnest(%s::double precision[]) AS b))
+                        ) AS similarity
+                    FROM claims c
+                    ORDER BY similarity DESC
+                    LIMIT 3;
+                """, (query_embedding, query_embedding))
+                
+                rows = cursor.fetchall()
+                for row in rows:
+                    similar_claims.append({
+                        "claim_id": row[0],
+                        "description": row[1],
+                        "peril": row[2],
+                        "damage_type": row[3],
+                        "estimated_loss": float(row[4]) if row[4] is not None else 0.0,
+                        "status": row[5],
+                        "recommendation": row[6],
+                        "similarity": round(float(row[7]) * 100, 1) if row[7] is not None else 0.0
+                    })
+                cursor.close()
+                conn.close()
+            except Exception as e:
+                print(f"Error searching similar claims in Postgres: {e}")
+
+        # HTML fields are already cleaned using pre-defined clean_html
+
+        # Assemble response
+        response = {
+            "status": "success",
+            "extraction": {
+                "claim_id": clean_html(extracted_data.get("claim_id", f"CLM-{random.randint(10000, 99999)}")),
+                "policy": clean_html(extracted_data.get("policy", "Unknown")),
+                "customer": clean_html(extracted_data.get("customer_name", "Unknown")),
+                "source": "Web Portal",
+                "highlighted_text": extracted_data.get("highlighted_text", claim_text),
+                "peril": clean_html(extracted_data.get("peril", "Unknown")),
+                "damage_type": clean_html(extracted_data.get("damage_type", "Unknown")),
+                "structure": clean_html(extracted_data.get("structure", "Unknown")),
+                "estimated_loss": clean_html(extracted_data.get("estimated_loss", "Unknown")),
+            },
+            "taxonomy_path": taxonomy_path,
+            "knowledge_graph": {
+                "nodes": [
+                    clean_html(extracted_data.get("customer_name", "Customer")), 
+                    clean_html(extracted_data.get("policy", "Policy")), 
+                    "Coverage B", 
+                    clean_html(extracted_data.get("structure", "Structure")), 
+                    clean_html(extracted_data.get("peril", "Peril"))
+                ],
+                "reasoning": clean_html(extracted_data.get("reasoning", "Coverage evaluated."))
+            },
+            "risk_analytics": {
+                "fraud_probability": clean_html(extracted_data.get("fraud_probability", "5%")),
+                "coverage_confidence": clean_html(extracted_data.get("coverage_confidence", "90%")),
+                "historical_matches": str(len(similar_claims)) if similar_claims else extracted_data.get("historical_matches", "0"),
+                "semantic_similarity": f"{int(similar_claims[0]['similarity'])}%" if similar_claims else extracted_data.get("semantic_similarity", "80%")
+            },
+            "recommendation": clean_html(extracted_data.get("recommendation", "Manual Review")),
+            "similar_claims": [{**c, "description": clean_html(c["description"]), "peril": clean_html(c["peril"]), "damage_type": clean_html(c["damage_type"]), "recommendation": clean_html(c["recommendation"])} for c in similar_claims],
+            "customer_policies": customer_policies
+        }
+        
+        return jsonify(response), 200
+        
+    except Exception as e:
+        print(f"Error in workflow analysis: {e}")
+        return jsonify({'error': str(e)}), 500
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True)

@@ -7,3 +7,5 @@ pypdf==3.17.0
 spacy>=3.7.2
 matplotlib>=3.9.0
 transformers>=4.40.0
+openai>=1.0.0
+python-dotenv>=1.0.0

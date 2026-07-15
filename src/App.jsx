@@ -6,6 +6,7 @@ import { FaBars, FaSearch, FaTimes, FaTrash } from 'react-icons/fa'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import DimensionChart from './components/DimensionChart'
 import TaxonomyView from './components/TaxonomyView'
+import Workflow from './components/Workflow'
 
 function App() {
   const [searchQuery, setSearchQuery] = useState('')
@@ -46,7 +47,7 @@ function App() {
   const [nResults, setNResults] = useState(() => localStorage.getItem('nResults') || '3')
   const [taxonomyConfig, setTaxonomyConfig] = useState('{}')
   const [isSavingTaxonomy, setIsSavingTaxonomy] = useState(false)
-  
+
   const fileInputRef = useRef(null)
   const debounceTimer = useRef(null)
   const knowledgeGraphRef = useRef(null)
@@ -90,7 +91,7 @@ function App() {
     fetchCollections()
     fetchTaxonomyConfig()
   }, [])
-  
+
   const fetchTaxonomyConfig = async () => {
     try {
       const response = await fetch('http://localhost:5000/api/taxonomy-tree')
@@ -112,7 +113,7 @@ function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(parsedConfig)
       })
-      
+
       if (!response.ok) throw new Error('Failed to save taxonomy')
       alert('Taxonomy tree saved successfully!')
     } catch (error) {
@@ -136,7 +137,7 @@ function App() {
   // Handle tab switching with loading state and selective state reset
   useEffect(() => {
     setIsTabLoading(true)
-    
+
     // Reset state only for non-search tabs when switching
     const resetTabState = () => {
       if (activePath === '/collections') {
@@ -158,7 +159,7 @@ function App() {
     }
 
     resetTabState()
-    
+
     // Simulate minimal loading time and refresh data based on active tab
     const loadTabData = async () => {
       if (activePath === '/documents') {
@@ -186,7 +187,7 @@ function App() {
     }
 
     console.log('Current defaultCollection:', defaultCollection)
-    
+
     if (!defaultCollection) {
       console.log('No collection selected, showing error')
       setSearchError('Please select a collection first. Go to Collections tab and click "Use This Collection"')
@@ -200,7 +201,7 @@ function App() {
 
     try {
       console.log('Sending search request with query:', inputValue, 'collection:', defaultCollection)
-      
+
       const response = await fetch('http://localhost:5000/api/search', {
         method: 'POST',
         headers: {
@@ -214,7 +215,7 @@ function App() {
       })
 
       console.log('Response status:', response.status, response.statusText)
-      
+
       if (!response.ok) {
         const errorText = await response.text()
         console.error('API error response:', errorText)
@@ -225,7 +226,7 @@ function App() {
       console.log('Search response data:', data)
       setSubmittedQuery(data.query)
       setSearchResults(data.results || [])
-      
+
       if (data.results && data.results.length === 0) {
         console.warn('No results returned from search')
         setSearchError('No results found. Make sure you have vectorized PDFs in the selected collection.')
@@ -234,7 +235,7 @@ function App() {
       if (data.results && data.results.length > 0) {
         setIsDimensionLoading(true)
         try {
-         const dimResponse = await fetch(`http://localhost:5000/api/search/dimensions?collection=${encodeURIComponent(defaultCollection)}&query=${encodeURIComponent(inputValue)}`)
+          const dimResponse = await fetch(`http://localhost:5000/api/search/dimensions?collection=${encodeURIComponent(defaultCollection)}&query=${encodeURIComponent(inputValue)}`)
           if (dimResponse.ok) {
             const dimData = await dimResponse.json()
             setDimensionData(Array.isArray(dimData) ? dimData : (dimData.dimensions || []))
@@ -572,15 +573,15 @@ function App() {
       const data = await response.json()
       console.log('Knowledge graph extracted:', data)
       setKnowledgeGraphTriplets(data.triplets || [])
-      
+
       // Auto-scroll to knowledge graph after extraction
       setTimeout(() => {
         if (knowledgeGraphRef.current) {
           knowledgeGraphRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
         }
       }, 300)
-      
-      alert(`Successfully extracted ${data.triplets_extracted} triplets from ${data.total_sentences} sentences`)
+
+      alert(`Successfully extracted ${data.triplets_extracted} triples from ${data.total_sentences} sentences`)
     } catch (error) {
       console.error('Error extracting knowledge graph:', error)
       alert(`Error extracting knowledge graph: ${error.message}`)
@@ -639,7 +640,7 @@ function App() {
                   </button>
                 </div>
               </div>
-              
+
               {!defaultCollection && (
                 <div className="search-result-panel-top">
                   <div className="search-result-panel-content" style={{ color: '#d32f2f', borderLeft: '4px solid #d32f2f', paddingLeft: '12px', fontWeight: '500' }}>
@@ -649,7 +650,7 @@ function App() {
               )}
 
 
-              
+
               {defaultCollection && (
                 <div className="search-result-panel-top">
                   <div className="search-result-panel-content" style={{ color: '#4caf50', borderLeft: '4px solid #4caf50', paddingLeft: '12px', fontSize: '14px' }}>
@@ -657,7 +658,7 @@ function App() {
                   </div>
                 </div>
               )}
-              
+
               {submittedQuery && (
                 <div className="search-result-panel-top">
                   <div className="search-result-panel-header">Search Query:</div>
@@ -666,7 +667,7 @@ function App() {
                   </div>
                 </div>
               )}
-              
+
               {isSearching && (
                 <div className="search-result-panel-top">
                   <div className="search-result-panel-content" style={{ textAlign: 'center', color: '#999' }}>
@@ -674,7 +675,7 @@ function App() {
                   </div>
                 </div>
               )}
-              
+
               {searchError && (
                 <div className="search-result-panel-top">
                   <div className="search-result-panel-content" style={{ color: '#d32f2f', borderLeft: '4px solid #d32f2f', paddingLeft: '12px' }}>
@@ -682,7 +683,7 @@ function App() {
                   </div>
                 </div>
               )}
-              
+
               {!isSearching && submittedQuery && searchResults.length === 0 && !searchError && (
                 <div className="search-result-panel-top">
                   <div className="search-result-panel-content" style={{ textAlign: 'center', color: '#999' }}>
@@ -690,7 +691,7 @@ function App() {
                   </div>
                 </div>
               )}
-              
+
               {searchResults.length > 0 && (
                 <div className="search-results">
                   <div className="search-result-panel-header">Search Results ({searchResults.length}):</div>
@@ -711,13 +712,13 @@ function App() {
                   ))}
                 </div>
               )}
-              
+
               {searchResults.length > 0 && (
                 <div className="search-results-analytics">
                   <div className="search-chart-container">
                     <div className="search-chart-header">Relevancy Score Chart</div>
                     <ResponsiveContainer width="100%" height={300}>
-                      <LineChart 
+                      <LineChart
                         data={searchResults.map((result, index) => ({
                           name: `Result ${index + 1}`,
                           relevance: parseFloat((result.similarity * 100).toFixed(2))
@@ -725,34 +726,34 @@ function App() {
                         margin={{ top: 5, right: 30, left: 60, bottom: 5 }}
                       >
                         <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-                        <XAxis 
-                          dataKey="name" 
+                        <XAxis
+                          dataKey="name"
                           stroke="#666"
                           style={{ fontSize: '12px' }}
                         />
-                        <YAxis 
-                          domain={[0, 100]} 
+                        <YAxis
+                          domain={[0, 100]}
                           stroke="#666"
                           style={{ fontSize: '12px' }}
                           label={{ value: 'Relevance Score (%)', angle: -90, position: 'left', offset: 10, textAnchor: 'middle' }}
                         />
-                        <Tooltip 
-                          contentStyle={{ 
-                            backgroundColor: '#fff', 
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: '#fff',
                             border: '1px solid #ccc',
                             borderRadius: '4px',
                             padding: '8px'
                           }}
                           formatter={(value) => [`${value.toFixed(2)}%`, 'Relevance']}
                         />
-                        <Legend 
+                        <Legend
                           wrapperStyle={{ paddingTop: '20px' }}
                           iconType="line"
                         />
-                        <Line 
-                          type="monotone" 
-                          dataKey="relevance" 
-                          stroke="#7baad8" 
+                        <Line
+                          type="monotone"
+                          dataKey="relevance"
+                          stroke="#7baad8"
                           strokeWidth={3}
                           dot={{ fill: '#7baad8', r: 6 }}
                           activeDot={{ r: 8 }}
@@ -761,7 +762,7 @@ function App() {
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
-                  
+
                   <div className="documents-list-panel">
                     <div className="documents-list-header">Documents by Relevance</div>
                     <div className="documents-list">
@@ -791,7 +792,7 @@ function App() {
                 <div className="collections-form">
                   <div className="form-group">
                     <label>Select PDF to Vectorize:</label>
-                    <select 
+                    <select
                       value={selectedPdfForVectorization}
                       onChange={(e) => setSelectedPdfForVectorization(e.target.value)}
                       className="form-select"
@@ -804,7 +805,7 @@ function App() {
                       ))}
                     </select>
                   </div>
-                  
+
                   <div className="form-group">
                     <label>Collection Name:</label>
                     <input
@@ -815,8 +816,8 @@ function App() {
                       className="form-input"
                     />
                   </div>
-                  
-                  <button 
+
+                  <button
                     onClick={handleVectorize}
                     disabled={isVectorizing}
                     className="vectorize-button"
@@ -848,7 +849,7 @@ function App() {
                             {collection.name}
                           </div>
                           <div className="document-partition-content" style={{ marginBottom: '8px' }}>
-                            <span 
+                            <span
                               style={{ cursor: 'pointer', color: '#7baad8', textDecoration: 'underline' }}
                               onClick={() => fetchChunksForCollection(collection.name)}
                               role="button"
@@ -862,9 +863,9 @@ function App() {
                             <div style={{ fontSize: '13px', color: '#666', marginTop: '8px' }}>
                               <div style={{ fontWeight: '500', marginBottom: '4px' }}>PDFs in this collection:</div>
                               {collection.pdfs.map((pdf, idx) => (
-                                <div key={idx} style={{ 
-                                  fontSize: '12px', 
-                                  color: '#7baad8', 
+                                <div key={idx} style={{
+                                  fontSize: '12px',
+                                  color: '#7baad8',
                                   marginLeft: '16px',
                                   wordBreak: 'break-word',
                                   marginBottom: '2px'
@@ -887,7 +888,7 @@ function App() {
                       </div>
                     </div>
                   ))}
-                  
+
                   {defaultCollection && (
                     <div style={{ marginTop: '16px', padding: '16px', backgroundColor: '#f5f5f5', borderRadius: '8px' }}>
                       <div style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>
@@ -923,7 +924,7 @@ function App() {
                       <span className="chunks-modal-title">
                         Chunks from "{selectedCollectionForChunks}" ({collectionChunks.length} total)
                       </span>
-                      <button 
+                      <button
                         className="chunks-modal-close"
                         onClick={() => setSelectedCollectionForChunks(null)}
                         aria-label="Close chunks viewer"
@@ -970,7 +971,7 @@ function App() {
             <div className="collections-container">
               <div className="search-result-panel-top">
                 <div className="search-result-panel-header">Document Details</div>
-                
+
                 <div className="document-partition">
                   <div className="document-partition-title">Upload PDF</div>
                   <div className="upload-box">
@@ -998,12 +999,12 @@ function App() {
                     <div className="document-partition-title">Uploaded Files ({uploadedFiles.length})</div>
                     <div className="files-list">
                       {uploadedFiles.map((file, index) => (
-                        <div 
-                          key={index} 
+                        <div
+                          key={index}
                           className="file-item"
                           style={{ backgroundColor: selectedDocument?.name === file.name ? '#e8f4f8' : 'var(--bg)' }}
                         >
-                          <span 
+                          <span
                             className="file-name"
                             onClick={() => setSelectedDocument(file)}
                             style={{ flex: 1, cursor: 'pointer' }}
@@ -1032,7 +1033,7 @@ function App() {
                   <div className="pdf-modal-container" onClick={(e) => e.stopPropagation()}>
                     <div className="pdf-modal-header">
                       <span className="pdf-modal-title">Viewing: {selectedDocument.name}</span>
-                      <button 
+                      <button
                         className="pdf-modal-close"
                         onClick={() => setSelectedDocument(null)}
                         aria-label="Close PDF viewer"
@@ -1046,10 +1047,10 @@ function App() {
                         title={selectedDocument.name}
                       />
                     </div>
-                    
+
                   </div>
                 </div>
-                
+
               )}
             </div>
           )}
@@ -1061,7 +1062,7 @@ function App() {
                   <div className="knowledge-graph-form">
                     <div className="form-group">
                       <label>Select PDF for Knowledge Graph:</label>
-                      <select 
+                      <select
                         value={selectedPdfForKG}
                         onChange={(e) => setSelectedPdfForKG(e.target.value)}
                         className="form-select"
@@ -1074,7 +1075,7 @@ function App() {
                         ))}
                       </select>
                     </div>
-                    
+
                     <button
                       onClick={handleExtractKnowledgeGraph}
                       disabled={isExtractingKG || !selectedPdfForKG}
@@ -1086,7 +1087,7 @@ function App() {
                   </div>
                 </div>
 
-                <KnowledgeGraph 
+                <KnowledgeGraph
                   triplets={knowledgeGraphTriplets}
                   loading={isExtractingKG}
                 />
@@ -1096,6 +1097,11 @@ function App() {
           {activePath === '/taxonomy' && (
             <div className="collections-container">
               <TaxonomyView />
+            </div>
+          )}
+          {activePath === '/workflow' && (
+            <div className="collections-container">
+              <Workflow />
             </div>
           )}
           {activePath === '/settings' && (
@@ -1159,7 +1165,7 @@ function App() {
                   </button>
                 </div>
               </div>
-              
+
               <div className="search-result-panel-top" style={{ marginTop: '20px' }}>
                 <div className="search-result-panel-header">Taxonomy Configuration</div>
                 <div className="settings-form">
@@ -1190,7 +1196,7 @@ function App() {
             </div>
           )}
 
-                    {searchResults.length > 0 && (
+          {searchResults.length > 0 && (
             <div className="dimension-chart-section">
               <div className="dimension-chart-header">Embedding Dimension Statistics</div>
               <DimensionChart data={dimensionData} loading={isDimensionLoading} />
@@ -1198,7 +1204,7 @@ function App() {
           )}
         </main>
       </div>
-      
+
     </div>
   )
 }

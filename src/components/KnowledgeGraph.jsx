@@ -19,11 +19,11 @@ export default function KnowledgeGraph({ triplets = [], loading = false }) {
     // Filter triplets based on search criteria
     const filteredTriplets = triplets.filter((triplet) => {
       if (!filterText.trim()) return true
-      
+
       const searchLower = filterText.toLowerCase()
       const subjectMatch = triplet.subject.toLowerCase().includes(searchLower)
       const objectMatch = triplet.object.toLowerCase().includes(searchLower)
-      
+
       if (filterType === 'subject') return subjectMatch
       if (filterType === 'object') return objectMatch
       return subjectMatch || objectMatch // 'all'
@@ -188,7 +188,7 @@ export default function KnowledgeGraph({ triplets = [], loading = false }) {
           </div>
         )}
       </div>
-      
+
       {/* Filter Panel */}
       <div className="filter-panel">
         <div className="filter-input-group">
@@ -238,7 +238,7 @@ export default function KnowledgeGraph({ triplets = [], loading = false }) {
           </label>
         </div>
       </div>
-      
+
       <div className={`knowledge-graph-wrapper${isFullscreen ? ' fullscreen' : ''}`} ref={wrapperRef}>
         <button className="fullscreen-toggle-btn" onClick={toggleFullscreen} title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}>
           {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
@@ -311,7 +311,7 @@ export default function KnowledgeGraph({ triplets = [], loading = false }) {
               // Draw edge label (predicate)
               const midX = (start.x + end.x) / 2
               const midY = (start.y + end.y) / 2
-              
+
               ctx.fillStyle = '#666'
               ctx.font = '10px Arial'
               ctx.textAlign = 'center'
@@ -355,7 +355,7 @@ export default function KnowledgeGraph({ triplets = [], loading = false }) {
 
         <div className="knowledge-graph-triplets">
           <div className="triplets-header">
-            Extracted Triplets ({filteredTriplets.length}{filterText ? ` of ${triplets.length}` : ''})
+            Extracted Triples ({filteredTriplets.length}{filterText ? ` of ${triplets.length}` : ''})
           </div>
           <div className="triplets-list">
             {filteredTriplets.map((triplet, index) => (

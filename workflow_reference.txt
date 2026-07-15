@@ -1,0 +1,143 @@
+export default function InsuranceClaimsCopilot() {
+  const similarClaims = [
+    { id: 'CLM-80122', similarity: '97%', outcome: 'Approved' },
+    { id: 'CLM-77543', similarity: '94%', outcome: 'Approved' },
+    { id: 'CLM-70118', similarity: '91%', outcome: 'Manual Review' }
+  ];
+
+  return (
+    <div className='min-h-screen bg-slate-100 p-6'>
+      <div className='max-w-7xl mx-auto space-y-4'>
+
+
+        <div className='bg-white rounded-3xl shadow p-6'>
+          <h1 className='text-3xl font-bold'>Insurance Claims Copilot</h1>
+          <p className='text-slate-600'>Real-Time FNOL Intake + Semantic Search + Taxonomy + Ontology</p>
+        </div>
+
+        <div className='bg-blue-50 border border-blue-200 rounded-3xl p-5'>
+          <div className='flex justify-between items-center'>
+            <div>
+              <h2 className='text-xl font-semibold'>🚨 New Claim Received</h2>
+              <p className='text-sm text-slate-600'>Source: Mobile App • Received 10:32 AM</p>
+            </div>
+            <span className='bg-amber-100 text-amber-800 px-3 py-1 rounded-full'>Processing</span>
+          </div>
+        </div>
+
+        <div className='grid lg:grid-cols-3 gap-4'>
+
+
+          <div className='bg-white rounded-3xl shadow p-5'>
+            <h3 className='font-semibold text-lg mb-3'>� Incoming Claim</h3>
+            <div className='space-y-2 text-sm'>
+              <div><b>Claim ID:</b> CLM-90214</div>
+              <div><b>Policy:</b> HO-9912</div>
+              <div><b>Customer:</b> John Doe</div>
+              <div><b>Source:</b> Mobile App</div>
+            </div>
+
+
+            <div className='mt-4 p-3 bg-slate-50 rounded-xl'>
+              High winds caused an old oak tree to snap and fall onto my detached workshop. Roof damage is significant and water entered the building.
+            </div>
+          </div>
+
+
+          <div className='bg-white rounded-3xl shadow p-5'>
+            <h3 className='font-semibold text-lg mb-3'>🧠 AI Extracted Information</h3>
+            <div className='space-y-3'>
+              <div>Peril: <b>Windstorm</b></div>
+              <div>Damage Type: <b>Fallen Tree</b></div>
+              <div>Structure: <b>Detached Workshop</b></div>
+              <div>Estimated Loss: <b>$12,000</b></div>
+            </div>
+
+
+            <div className='mt-4 flex flex-wrap gap-2'>
+              <span className='bg-blue-100 px-3 py-1 rounded-full'>Windstorm</span>
+              <span className='bg-green-100 px-3 py-1 rounded-full'>Tree Damage</span>
+              <span className='bg-purple-100 px-3 py-1 rounded-full'>Coverage B</span>
+            </div>
+          </div>
+
+          <div className='bg-white rounded-3xl shadow p-5'>
+            <h3 className='font-semibold text-lg mb-3'>📂 Taxonomy</h3>
+            <div className='text-sm leading-8'>
+              Insurance<br/>
+              └── Property Insurance<br/>
+              &nbsp;&nbsp;&nbsp;&nbsp;└── Homeowners HO-3<br/>
+              &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── Windstorm<br/>
+              &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── Fallen Tree Damage
+            </div>
+          </div>
+        </div>
+
+        <div className='bg-white rounded-3xl shadow p-5'>
+          <h3 className='font-semibold text-lg mb-4'>🕸️ Knowledge Graph & Coverage Reasoning</h3>
+
+
+          <div className='grid md:grid-cols-5 gap-3 text-center'>
+            {['John Doe','Policy HO-9912','Coverage B','Detached Workshop','Windstorm'].map(node => (
+              <button key={node} className='border rounded-2xl p-4 bg-slate-50 hover:bg-blue-50'>
+                {node}
+              </button>
+            ))}
+          </div>
+
+
+          <div className='mt-5 p-4 bg-green-50 border border-green-200 rounded-xl'>
+            ✅ Coverage Conditions Satisfied<br/>
+            Windstorm is a covered peril. Coverage B applies to detached structures. No exclusion indicators found.
+          </div>
+        </div>
+
+        <div className='grid lg:grid-cols-3 gap-4'>
+
+
+          <div className='bg-white rounded-3xl shadow p-5'>
+            <h3 className='font-semibold text-lg mb-3'>🔎 Similar Claims</h3>
+            {similarClaims.map(claim => (
+              <button key={claim.id} className='w-full text-left border rounded-xl p-3 mb-2 hover:bg-slate-50'>
+                <div className='font-medium'>{claim.id}</div>
+                <div className='text-sm'>Similarity: {claim.similarity}</div>
+                <div className='text-sm text-slate-600'>{claim.outcome}</div>
+              </button>
+            ))}
+          </div>
+
+          <div className='bg-white rounded-3xl shadow p-5'>
+            <h3 className='font-semibold text-lg mb-3'>📈 Risk Analytics</h3>
+            <div className='space-y-2'>
+              <div>Fraud Probability: <b>4%</b></div>
+              <div>Coverage Confidence: <b>93%</b></div>
+              <div>Historical Matches: <b>184</b></div>
+              <div>Semantic Similarity: <b>97%</b></div>
+            </div>
+          </div>
+
+          <div className='bg-white rounded-3xl shadow p-5'>
+            <h3 className='font-semibold text-lg mb-3'>🤖 AI Recommendation</h3>
+            <div className='text-green-700 font-bold text-xl mb-4'>Approve Claim</div>
+
+
+            <div className='flex flex-wrap gap-2'>
+              <button className='bg-green-600 text-white px-4 py-2 rounded-xl'>Approve</button>
+              <button className='bg-amber-500 text-white px-4 py-2 rounded-xl'>Manual Review</button>
+              <button className='bg-red-600 text-white px-4 py-2 rounded-xl'>Reject</button>
+            </div>
+          </div>
+        </div>
+
+        <div className='bg-white rounded-3xl shadow p-5'>
+          <h3 className='font-semibold text-lg mb-3'>💬 Claims Copilot</h3>
+          <div className='bg-slate-50 rounded-xl p-4'>
+            Detached workshop is classified as Other Structures under Coverage B. Windstorm is a covered peril. Estimated loss is within policy limits. Recommendation: Approve and route to appraisal team.
+          </div>
+        </div>
+
+
+      </div>
+    </div>
+  );
+}

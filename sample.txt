@@ -69,3 +69,43 @@ A customer was walking through the store and fell on a wet spot, sustaining a fr
 Sample 18 (Property - Commercial Auto Property Damage): 
 
 My delivery van hit a parked car while trying to parallel park.
+
+High winds caused an old oak tree to snap and fall onto my detached workshop. The roof is destroyed and water entered the building causing $15,000 in damage
+
+Flood Damage
+
+A pipe burst in my kitchen and leaked into the basement, ruining the drywall and flooring. The estimated damage is $15,000.
+
+-----------
+
+My name is James Sterling (Policy POL-991823). High winds during yesterday's severe storm caused an old oak tree to snap and fall directly onto my detached workshop. The impact caused major structural damage to the roof and allowed rainwater to enter the building, resulting in an estimated loss of $15,000. Claim ID: CLM-90214
+
+I am Anita Rao (Policy POL-445122). While crossing the factory floor this morning during my shift, I slipped on an unmarked wet surface and fell, sustaining a fractured ankle and a severely sprained wrist that required immediate medical treatment.
+
+
+Claim 1: Suspicious Timeline / Haste (Claim immediately after buying policy)
+Input text: My name is James Sterling (Policy POL-991823). I purchased this policy yesterday evening at 10:30 PM. Unfortunately, at 11:45 PM last night—only an hour after coverage started—a sudden electrical short-circuit occurred in my detached garage workshop, causing a complete fire that totally destroyed the structure and all high-value machinery inside, resulting in a loss of $45,000.
+
+Why the AI flags it: Filing a major property total-loss claim within minutes or hours of policy inception is one of the highest priority red flags in insurance analytics.
+Claim 2: Inconsistent Proof / Pre-existing Indicators (Cash purchases & camera failures)
+Input text: I am Anita Rao (Policy POL-445122). I am filing a claim for the theft of my high-end workstation and professional camera equipment worth $12,000 from my home office. The theft occurred while I was out. I do not have the purchase receipts because I bought them in cash from a private vendor, and unfortunately, my home security cameras were temporarily disconnected for maintenance during the exact hours of the incident.
+
+Why the AI flags it: Large value claims with no proof of purchase (cash transactions) combined with "convenient" security camera failures during the exact timeframe of the loss are classic indicators of potential fraud.
+Claim 3: Duplicate Claims / Potential Double-Dipping
+Input text: I am Vikram Malhotra (Policy POL-112233). I am claiming $15,000 for severe flood damage to my basement walls and flooring. The water ingress occurred due to heavy rainfall. I hired a contractor to do the work immediately and paid them in cash. The damage is identical to a claim I submitted last winter, but this is a completely new and separate incident.
+
+Why the AI flags it: Re-submitting identical damage matching a prior claim (especially with cash-only contractor receipts and lack of formal invoices) is flagged as potential double-dipping or claiming pre-existing damage.
+
+
+Claim 1: Suspicious Timeline / Haste (Claim immediately after buying policy)
+Input text: My name is James Sterling (Policy POL-991823). I purchased this policy yesterday evening at 10:30 PM. Unfortunately, at 11:45 PM last night—only an hour after coverage started—a sudden electrical short-circuit occurred in my detached garage workshop, causing a complete fire that totally destroyed the structure and all high-value machinery inside, resulting in a loss of $45,000.
+
+Why the AI flags it: Filing a major property total-loss claim within minutes or hours of policy inception is one of the highest priority red flags in insurance analytics.
+Claim 2: Inconsistent Proof / Pre-existing Indicators (Cash purchases & camera failures)
+Input text: I am Anita Rao (Policy POL-445122). I am filing a claim for the theft of my high-end workstation and professional camera equipment worth $12,000 from my home office. The theft occurred while I was out. I do not have the purchase receipts because I bought them in cash from a private vendor, and unfortunately, my home security cameras were temporarily disconnected for maintenance during the exact hours of the incident.
+
+Why the AI flags it: Large value claims with no proof of purchase (cash transactions) combined with "convenient" security camera failures during the exact timeframe of the loss are classic indicators of potential fraud.
+Claim 3: Duplicate Claims / Potential Double-Dipping
+Input text: I am Vikram Malhotra (Policy POL-112233). I am claiming $15,000 for severe flood damage to my basement walls and flooring. The water ingress occurred due to heavy rainfall. I hired a contractor to do the work immediately and paid them in cash. The damage is identical to a claim I submitted last winter, but this is a completely new and separate incident.
+
+Why the AI flags it: Re-submitting identical damage matching a prior claim (especially with cash-only contractor receipts and lack of formal invoices) is flagged as potential double-dipping or claiming pre-existing damage.
